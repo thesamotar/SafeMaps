@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Road Hazard Alert - SafeMaps</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- HUD Overlay -->
+    <div id="hud">
+      <div class="hud-header">
+        <span class="hud-icon">🛡️</span>
+        <span class="hud-title">SafeMaps</span>
+      </div>
+      
+      <div class="hud-stats">
+        <div class="stat-item">
+          <span class="stat-label">Speed</span>
+          <span id="speed-value" class="stat-value">0</span>
+          <span class="stat-unit">km/h</span>
+        </div>
+        
+        <div class="stat-item">
+          <span class="stat-label">Nearest Hazard</span>
+          <span id="distance-value" class="stat-value">--</span>
+          <span class="stat-unit">m</span>
+        </div>
+      </div>
+      
+      <div id="alert-status" class="alert-status safe">
+        <span class="alert-icon">✓</span>
+        <span class="alert-text">Road Clear</span>
+      </div>
+      
+      <button id="simulate-btn" class="simulate-btn">
+        <span class="btn-icon">🚗</span>
+        Simulate Drive
+      </button>
+      
+      <div class="hud-footer">
+        <span id="hazard-count">0 hazards loaded</span>
+      </div>
+    </div>
+
+    <!-- Alert Flash Overlay -->
+    <div id="flash-overlay" class="flash-overlay"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,305 @@
+/* ===== CSS Variables ===== */
+:root {
+  --primary: #1a73e8;
+  --primary-dark: #1557b0;
+  --danger: #ea4335;
+  --danger-glow: rgba(234, 67, 53, 0.6);
+  --warning: #fbbc04;
+  --success: #34a853;
+  --dark: #202124;
+  --dark-secondary: #2d2e30;
+  --light: #e8eaed;
+  --glass-bg: rgba(32, 33, 36, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --font-family: 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* ===== Reset & Base ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-family);
+  overflow: hidden;
+}
+
+/* ===== Map Container ===== */
+#map {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* ===== HUD Overlay ===== */
+#hud {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 280px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  color: var(--light);
+}
+
+.hud-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.hud-icon {
+  font-size: 24px;
+}
+
+.hud-title {
+  font-size: 20px;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary), #8ab4f8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Stats Display ===== */
+.hud-stats {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  flex: 1;
+  background: var(--dark-secondary);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9aa0a6;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--light);
+  line-height: 1;
+}
+
+.stat-unit {
+  display: block;
+  font-size: 12px;
+  color: #9aa0a6;
+  margin-top: 3px;
+}
+
+/* ===== Alert Status ===== */
+.alert-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.alert-status.safe {
+  background: linear-gradient(135deg, rgba(52, 168, 83, 0.2), rgba(52, 168, 83, 0.1));
+  border: 1px solid rgba(52, 168, 83, 0.3);
+  color: var(--success);
+}
+
+.alert-status.warning {
+  background: linear-gradient(135deg, rgba(251, 188, 4, 0.2), rgba(251, 188, 4, 0.1));
+  border: 1px solid rgba(251, 188, 4, 0.3);
+  color: var(--warning);
+  animation: pulse-warning 1s ease-in-out infinite;
+}
+
+.alert-status.danger {
+  background: linear-gradient(135deg, rgba(234, 67, 53, 0.3), rgba(234, 67, 53, 0.1));
+  border: 1px solid rgba(234, 67, 53, 0.5);
+  color: var(--danger);
+  animation: pulse-danger 0.5s ease-in-out infinite;
+}
+
+.alert-icon {
+  font-size: 18px;
+}
+
+@keyframes pulse-warning {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes pulse-danger {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--danger-glow); }
+  50% { transform: scale(1.02); box-shadow: 0 0 20px 5px var(--danger-glow); }
+}
+
+/* ===== Simulate Button ===== */
+.simulate-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.simulate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+}
+
+.simulate-btn:active {
+  transform: translateY(0);
+}
+
+.simulate-btn.active {
+  background: linear-gradient(135deg, var(--danger), #c5221f);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+/* ===== HUD Footer ===== */
+.hud-footer {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid var(--glass-border);
+  text-align: center;
+  font-size: 12px;
+  color: #9aa0a6;
+}
+
+/* ===== Flash Overlay ===== */
+.flash-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.flash-overlay.active {
+  background: radial-gradient(circle at center, transparent 30%, var(--danger-glow) 100%);
+  animation: flash 0.3s ease-out;
+}
+
+@keyframes flash {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ===== Custom Marker Styles ===== */
+.hazard-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.hazard-marker:hover {
+  transform: scale(1.2);
+}
+
+.hazard-marker.bump {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+}
+
+.hazard-marker.table {
+  background: linear-gradient(135deg, #feca57, #ff9f43);
+}
+
+.hazard-marker.other {
+  background: linear-gradient(135deg, #a55eea, #8854d0);
+}
+
+/* ===== Info Window Styles ===== */
+.info-window {
+  padding: 8px;
+  font-family: var(--font-family);
+}
+
+.info-window h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  color: var(--dark);
+}
+
+.info-window p {
+  margin: 0;
+  font-size: 12px;
+  color: #5f6368;
+}
+
+/* ===== Loading State ===== */
+#map::before {
+  content: 'Loading map...';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  color: #5f6368;
+  z-index: 1;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  #hud {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    top: 10px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+}
