@@ -172,7 +172,7 @@ SafeMaps/
 
 ### v1.1.0 — Navigation Mode
 
-**Commit:** `347df32`  
+**Commit:** `145d082`  
 **Date:** January 22, 2026
 
 #### Changes Made:
