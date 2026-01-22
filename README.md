@@ -16,6 +16,7 @@ GoogleMapsSafe is a proof-of-concept application designed to enhance driver safe
 ### Key Features
 
 - **🗺️ Real-time Map**: Interactive Google Maps centered on your current GPS location
+- **🧭 Navigation Mode**: Enter start and destination to get turn-by-turn directions
 - **📍 Hazard Detection**: Automatically fetches and displays traffic calming features from OSM
 - **🎨 Color-coded Markers**: Visual distinction between hazard types:
   - 🔴 **Red**: Speed bumps and humps
@@ -23,6 +24,7 @@ GoogleMapsSafe is a proof-of-concept application designed to enhance driver safe
   - 🟣 **Purple**: Other traffic calming features
 - **⚡ Proximity Alerts**: Visual flash and audio warning when within 60 meters of a hazard
 - **📊 Live HUD**: Floating display showing current speed, distance to nearest hazard, and alert status
+- **🛣️ Route Hazard Detection**: Identifies hazards specifically along your planned route
 - **🚗 Simulation Mode**: Test the alert system without physically moving
 
 ---
@@ -34,6 +36,8 @@ GoogleMapsSafe is a proof-of-concept application designed to enhance driver safe
 | **Vite** | Fast build tool and development server |
 | **Vanilla JavaScript** | Core application logic (no frameworks) |
 | **Google Maps JavaScript API** | Map rendering, markers, and geolocation |
+| **Google Places API** | Location autocomplete for start/end inputs |
+| **Google Directions API** | Route calculation and turn-by-turn navigation |
 | **OpenStreetMap Overpass API** | Real-time traffic calming data |
 | **Web Audio API** | Warning sound generation |
 | **CSS3** | Glassmorphism UI with animations |
@@ -48,6 +52,8 @@ GoogleMapsSafe is a proof-of-concept application designed to enhance driver safe
 - **npm** (comes with Node.js)
 - **Google Maps API Key** with the following APIs enabled:
   - Maps JavaScript API
+  - Places API
+  - Directions API
   - Geometry Library
 
 ### Installation
@@ -115,12 +121,22 @@ SafeMaps/
 3. Hazards will automatically load for the visible area
 4. Move around to see proximity alerts trigger
 
+### Navigation Mode
+1. Your current location is auto-filled as the start point
+2. Enter a destination in the **"Destination"** field (with autocomplete)
+3. Click **"Get Route"** to calculate and display the route
+4. View route distance, duration, and hazards along the route
+5. Click **"Start Navigation"** to activate turn-by-turn guidance
+6. The Navigation HUD appears at the top with directions and ETA
+7. Click **"End"** to stop navigation
+
 ### Simulation Mode
-1. Wait for hazards to load (check the counter in the HUD)
-2. Click **"Simulate Drive"** button
-3. Your position will move toward the nearest hazard
-4. Observe the alert system in action
-5. Click **"Stop Simulation"** to end
+1. Wait for hazards to load (check the counter in the panel)
+2. Optionally set up a route first for route-based simulation
+3. Click **"Simulate Drive"** button
+4. Your position will move along the route (or toward nearest hazard)
+5. Observe the alert system in action
+6. Click **"Stop Simulation"** to end
 
 ### Alert Levels
 | Distance | Status | Visual |
@@ -154,15 +170,36 @@ SafeMaps/
 
 ---
 
+### v1.1.0 — Navigation Mode
+
+**Commit:** `347df32`  
+**Date:** January 22, 2026
+
+#### Changes Made:
+- ✅ Added start and destination location inputs with Google Places Autocomplete
+- ✅ Integrated Google Directions API for route calculation
+- ✅ Display route on map with distance and duration info
+- ✅ Implemented "Start Navigation" mode with turn-by-turn HUD
+- ✅ Added Navigation HUD showing next maneuver, distance, and ETA
+- ✅ Route-aware hazard detection (highlights hazards on your route)
+- ✅ Updated simulation to follow route path when navigation is active
+- ✅ Added "Use Current Location" button for start input
+- ✅ Added "Clear Route" functionality
+- ✅ Styled Google Places autocomplete dropdown to match dark theme
+- ✅ Redesigned panel layout to accommodate navigation controls
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
-- [ ] Implement route planning with hazard warnings
+- [x] ~~Implement route planning with hazard warnings~~ ✅ Done in v1.1.0
 - [ ] Add voice alerts using Web Speech API
 - [ ] Store user preferences in localStorage
 - [ ] Add offline support with service workers
 - [ ] Implement hazard reporting feature
 - [ ] Add night/day mode toggle
+- [ ] Add alternate route suggestions
 
 ---
 

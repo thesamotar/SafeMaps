@@ -8,8 +8,9 @@
   --success: #34a853;
   --dark: #202124;
   --dark-secondary: #2d2e30;
+  --dark-tertiary: #3c4043;
   --light: #e8eaed;
-  --glass-bg: rgba(32, 33, 36, 0.85);
+  --glass-bg: rgba(32, 33, 36, 0.92);
   --glass-border: rgba(255, 255, 255, 0.1);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --font-family: 'Segoe UI', 'Roboto', sans-serif;
@@ -22,7 +23,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   font-family: var(--font-family);
@@ -38,12 +40,14 @@ html, body {
   left: 0;
 }
 
-/* ===== HUD Overlay ===== */
-#hud {
+/* ===== Navigation Panel ===== */
+#nav-panel {
   position: fixed;
   top: 20px;
   left: 20px;
-  width: 280px;
+  width: 320px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -55,7 +59,20 @@ html, body {
   color: var(--light);
 }
 
-.hud-header {
+#nav-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#nav-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#nav-panel::-webkit-scrollbar-thumb {
+  background: var(--dark-tertiary);
+  border-radius: 3px;
+}
+
+.panel-header {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -64,11 +81,11 @@ html, body {
   border-bottom: 1px solid var(--glass-border);
 }
 
-.hud-icon {
+.panel-icon {
   font-size: 24px;
 }
 
-.hud-title {
+.panel-title {
   font-size: 20px;
   font-weight: 600;
   background: linear-gradient(135deg, var(--primary), #8ab4f8);
@@ -77,11 +94,225 @@ html, body {
   background-clip: text;
 }
 
+/* ===== Route Section ===== */
+.route-section {
+  margin-bottom: 15px;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.input-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #9aa0a6;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.input-icon {
+  font-size: 10px;
+}
+
+.input-icon.start {
+  color: var(--success);
+}
+
+.input-icon.end {
+  color: var(--danger);
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 45px 12px 14px;
+  background: var(--dark-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--light);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+}
+
+.input-group input::placeholder {
+  color: #5f6368;
+}
+
+.icon-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dark-tertiary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: var(--primary);
+  transform: scale(1.05);
+}
+
+/* ===== Route Connector ===== */
+.route-connector {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 4px;
+  height: 20px;
+}
+
+.connector-line {
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--success), var(--danger));
+  margin-left: 3px;
+}
+
+/* ===== Primary Button ===== */
+.primary-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+/* ===== Navigation Info ===== */
+.nav-info {
+  margin-top: 15px;
+  padding: 15px;
+  background: var(--dark-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+}
+
+.nav-info.hidden {
+  display: none;
+}
+
+.nav-stats {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 12px;
+}
+
+.nav-stat {
+  flex: 1;
+  text-align: center;
+}
+
+.nav-stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--light);
+}
+
+.nav-stat-label {
+  display: block;
+  font-size: 11px;
+  color: #9aa0a6;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-btn.start {
+  background: linear-gradient(135deg, var(--success), #2e7d32);
+  color: white;
+}
+
+.nav-btn.start:hover {
+  box-shadow: 0 4px 15px rgba(52, 168, 83, 0.4);
+}
+
+.nav-btn.clear {
+  background: var(--dark-tertiary);
+  color: var(--light);
+}
+
+.nav-btn.clear:hover {
+  background: var(--danger);
+}
+
+/* ===== Panel Divider ===== */
+.panel-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 15px 0;
+}
+
 /* ===== Stats Display ===== */
 .hud-stats {
   display: flex;
   gap: 15px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .stat-item {
@@ -155,13 +386,29 @@ html, body {
 }
 
 @keyframes pulse-warning {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
 }
 
 @keyframes pulse-danger {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--danger-glow); }
-  50% { transform: scale(1.02); box-shadow: 0 0 20px 5px var(--danger-glow); }
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--danger-glow);
+  }
+
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px 5px var(--danger-glow);
+  }
 }
 
 /* ===== Simulate Button ===== */
@@ -172,7 +419,7 @@ html, body {
   justify-content: center;
   gap: 8px;
   padding: 14px 20px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  background: var(--dark-tertiary);
   color: white;
   border: none;
   border-radius: 12px;
@@ -183,8 +430,8 @@ html, body {
 }
 
 .simulate-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+  background: var(--dark-secondary);
+  transform: translateY(-1px);
 }
 
 .simulate-btn:active {
@@ -195,18 +442,114 @@ html, body {
   background: linear-gradient(135deg, var(--danger), #c5221f);
 }
 
-.btn-icon {
-  font-size: 16px;
-}
-
-/* ===== HUD Footer ===== */
-.hud-footer {
+/* ===== Panel Footer ===== */
+.panel-footer {
   margin-top: 15px;
   padding-top: 12px;
   border-top: 1px solid var(--glass-border);
   text-align: center;
   font-size: 12px;
   color: #9aa0a6;
+}
+
+/* ===== Navigation HUD ===== */
+.nav-hud {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+  z-index: 1001;
+  color: var(--light);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav-hud.hidden {
+  display: none;
+}
+
+.nav-hud-content {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.nav-instruction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.instruction-icon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  border-radius: 12px;
+  font-size: 28px;
+  color: white;
+}
+
+.instruction-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.instruction-distance {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.instruction-action {
+  font-size: 14px;
+  color: #9aa0a6;
+}
+
+.nav-eta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-left: 20px;
+  border-left: 1px solid var(--glass-border);
+}
+
+#nav-eta-time {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.eta-label {
+  font-size: 11px;
+  color: #9aa0a6;
+  text-transform: uppercase;
+}
+
+.end-nav-btn {
+  padding: 10px 20px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.end-nav-btn:hover {
+  background: #c5221f;
+  transform: scale(1.05);
 }
 
 /* ===== Flash Overlay ===== */
@@ -228,9 +571,17 @@ html, body {
 }
 
 @keyframes flash {
-  0% { opacity: 0; }
-  30% { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
 }
 
 /* ===== Custom Marker Styles ===== */
@@ -278,6 +629,45 @@ html, body {
   color: #5f6368;
 }
 
+/* ===== Google Places Autocomplete ===== */
+.pac-container {
+  background: var(--dark) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 10px !important;
+  margin-top: 5px !important;
+  box-shadow: var(--shadow) !important;
+  font-family: var(--font-family) !important;
+}
+
+.pac-item {
+  padding: 10px 14px !important;
+  color: var(--light) !important;
+  border-top: 1px solid var(--glass-border) !important;
+  cursor: pointer !important;
+}
+
+.pac-item:first-child {
+  border-top: none !important;
+}
+
+.pac-item:hover {
+  background: var(--dark-secondary) !important;
+}
+
+.pac-item-query {
+  color: var(--light) !important;
+  font-size: 14px !important;
+}
+
+.pac-matched {
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+}
+
+.pac-icon {
+  filter: invert(1) !important;
+}
+
 /* ===== Loading State ===== */
 #map::before {
   content: 'Loading map...';
@@ -290,15 +680,38 @@ html, body {
   z-index: 1;
 }
 
+/* ===== Hidden Utility ===== */
+.hidden {
+  display: none !important;
+}
+
 /* ===== Responsive ===== */
-@media (max-width: 480px) {
-  #hud {
+@media (max-width: 768px) {
+  #nav-panel {
     left: 10px;
     right: 10px;
     width: auto;
     top: 10px;
+    max-height: 50vh;
   }
-  
+
+  .nav-hud {
+    left: 10px;
+    right: 10px;
+    transform: none;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .nav-hud-content {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .end-nav-btn {
+    width: 100%;
+  }
+
   .stat-value {
     font-size: 24px;
   }

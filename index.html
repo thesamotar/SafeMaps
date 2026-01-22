@@ -1,54 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Road Hazard Alert - SafeMaps</title>
-    <link rel="stylesheet" href="/src/style.css" />
-  </head>
-  <body>
-    <!-- Map Container -->
-    <div id="map"></div>
 
-    <!-- HUD Overlay -->
-    <div id="hud">
-      <div class="hud-header">
-        <span class="hud-icon">🛡️</span>
-        <span class="hud-title">SafeMaps</span>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoogleMapsSafe - Road Hazard Alert</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+  <!-- Map Container -->
+  <div id="map"></div>
+
+  <!-- Navigation Panel -->
+  <div id="nav-panel">
+    <div class="panel-header">
+      <span class="panel-icon">🛡️</span>
+      <span class="panel-title">GoogleMapsSafe</span>
+    </div>
+
+    <!-- Route Input Section -->
+    <div class="route-section">
+      <div class="input-group">
+        <label for="start-input">
+          <span class="input-icon start">●</span>
+          Start Location
+        </label>
+        <input type="text" id="start-input" placeholder="Enter start location or use current" autocomplete="off" />
+        <button id="use-location-btn" class="icon-btn" title="Use current location">
+          📍
+        </button>
       </div>
-      
-      <div class="hud-stats">
-        <div class="stat-item">
-          <span class="stat-label">Speed</span>
-          <span id="speed-value" class="stat-value">0</span>
-          <span class="stat-unit">km/h</span>
-        </div>
-        
-        <div class="stat-item">
-          <span class="stat-label">Nearest Hazard</span>
-          <span id="distance-value" class="stat-value">--</span>
-          <span class="stat-unit">m</span>
-        </div>
+
+      <div class="route-connector">
+        <div class="connector-line"></div>
       </div>
-      
-      <div id="alert-status" class="alert-status safe">
-        <span class="alert-icon">✓</span>
-        <span class="alert-text">Road Clear</span>
+
+      <div class="input-group">
+        <label for="end-input">
+          <span class="input-icon end">●</span>
+          Destination
+        </label>
+        <input type="text" id="end-input" placeholder="Enter destination" autocomplete="off" />
       </div>
-      
-      <button id="simulate-btn" class="simulate-btn">
-        <span class="btn-icon">🚗</span>
-        Simulate Drive
+
+      <button id="get-route-btn" class="primary-btn">
+        <span class="btn-icon">🧭</span>
+        Get Route
       </button>
-      
-      <div class="hud-footer">
-        <span id="hazard-count">0 hazards loaded</span>
+    </div>
+
+    <!-- Navigation Info (shown when route is active) -->
+    <div id="nav-info" class="nav-info hidden">
+      <div class="nav-stats">
+        <div class="nav-stat">
+          <span class="nav-stat-value" id="route-distance">--</span>
+          <span class="nav-stat-label">Distance</span>
+        </div>
+        <div class="nav-stat">
+          <span class="nav-stat-value" id="route-duration">--</span>
+          <span class="nav-stat-label">Duration</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button id="start-nav-btn" class="nav-btn start">
+          <span class="btn-icon">▶</span>
+          Start Navigation
+        </button>
+        <button id="clear-route-btn" class="nav-btn clear">
+          <span class="btn-icon">✕</span>
+          Clear
+        </button>
       </div>
     </div>
 
-    <!-- Alert Flash Overlay -->
-    <div id="flash-overlay" class="flash-overlay"></div>
+    <!-- Divider -->
+    <div class="panel-divider"></div>
 
-    <script type="module" src="/src/main.js"></script>
-  </body>
+    <!-- HUD Stats -->
+    <div class="hud-stats">
+      <div class="stat-item">
+        <span class="stat-label">Speed</span>
+        <span id="speed-value" class="stat-value">0</span>
+        <span class="stat-unit">km/h</span>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-label">Nearest Hazard</span>
+        <span id="distance-value" class="stat-value">--</span>
+        <span class="stat-unit">m</span>
+      </div>
+    </div>
+
+    <div id="alert-status" class="alert-status safe">
+      <span class="alert-icon">✓</span>
+      <span class="alert-text">Road Clear</span>
+    </div>
+
+    <button id="simulate-btn" class="simulate-btn">
+      <span class="btn-icon">🚗</span>
+      Simulate Drive
+    </button>
+
+    <div class="panel-footer">
+      <span id="hazard-count">0 hazards loaded</span>
+    </div>
+  </div>
+
+  <!-- Navigation HUD (shown during active navigation) -->
+  <div id="nav-hud" class="nav-hud hidden">
+    <div class="nav-hud-content">
+      <div class="nav-instruction">
+        <span class="instruction-icon" id="nav-icon">↑</span>
+        <div class="instruction-text">
+          <span class="instruction-distance" id="nav-step-distance">--</span>
+          <span class="instruction-action" id="nav-step-action">Start navigation</span>
+        </div>
+      </div>
+      <div class="nav-eta">
+        <span id="nav-eta-time">--</span>
+        <span class="eta-label">ETA</span>
+      </div>
+    </div>
+    <button id="end-nav-btn" class="end-nav-btn">End</button>
+  </div>
+
+  <!-- Alert Flash Overlay -->
+  <div id="flash-overlay" class="flash-overlay"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
 </html>
