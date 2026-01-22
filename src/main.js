@@ -14,9 +14,6 @@ let hazards = [];
 let userPosition = null;
 let lastPosition = null;
 let lastTimestamp = null;
-let simulationMode = false;
-let simulationIndex = 0;
-let simulationPath = [];
 let locationWatchId = null;
 let audioContext = null;
 
@@ -31,11 +28,20 @@ let currentRoute = null;
 let navigationActive = false;
 let routeHazards = [];
 
+// Enhanced Simulation State
+let appMode = 'normal'; // 'normal' or 'simulate'
+let simulationActive = false;
+let simulationPaused = false;
+let simulationSpeed = 30; // km/h
+let simulationIndex = 0;
+let simulationPath = [];
+let simulationInterval = null;
+let simulationStartPosition = null;
+
 // ===== DOM Elements =====
 const speedValue = document.getElementById('speed-value');
 const distanceValue = document.getElementById('distance-value');
 const alertStatus = document.getElementById('alert-status');
-const simulateBtn = document.getElementById('simulate-btn');
 const flashOverlay = document.getElementById('flash-overlay');
 const hazardCount = document.getElementById('hazard-count');
 
@@ -55,6 +61,21 @@ const navStepAction = document.getElementById('nav-step-action');
 const navEtaTime = document.getElementById('nav-eta-time');
 const navIcon = document.getElementById('nav-icon');
 const endNavBtn = document.getElementById('end-nav-btn');
+
+// Mode Toggle DOM Elements
+const normalModeBtn = document.getElementById('normal-mode-btn');
+const simulateModeBtn = document.getElementById('simulate-mode-btn');
+const simulationControls = document.getElementById('simulation-controls');
+const simSpeedInput = document.getElementById('sim-speed-input');
+const simSpeedDisplay = document.getElementById('sim-speed-display');
+const speedPresets = document.querySelectorAll('.speed-preset');
+const startSimBtn = document.getElementById('start-sim-btn');
+const pauseSimBtn = document.getElementById('pause-sim-btn');
+const stopSimBtn = document.getElementById('stop-sim-btn');
+const simProgress = document.getElementById('sim-progress');
+const simProgressFill = document.getElementById('sim-progress-fill');
+const simProgressText = document.getElementById('sim-progress-text');
+const modeIndicator = document.getElementById('mode-indicator');
 
 // ===== Google Maps Loader =====
 async function loadGoogleMapsAPI() {
@@ -871,93 +892,183 @@ function playWarningSound() {
     }
 }
 
-// ===== Simulate Drive =====
-function startSimulation() {
-    const hazardsToUse = navigationActive ? routeHazards : hazards;
+// ===== Mode Toggle =====
+function switchToNormalMode() {
+    if (simulationActive) {
+        stopEnhancedSimulation();
+    }
 
-    if (hazardsToUse.length === 0) {
-        alert('No hazards loaded. Please wait for hazards to load or get a route first.');
+    appMode = 'normal';
+    normalModeBtn.classList.add('active');
+    simulateModeBtn.classList.remove('active');
+    simulationControls.classList.add('hidden');
+    modeIndicator.textContent = 'Normal Mode';
+    modeIndicator.classList.remove('simulate');
+
+    // Resume location tracking
+    startLocationPolling();
+
+    console.log('Switched to Normal Mode');
+}
+
+function switchToSimulateMode() {
+    appMode = 'simulate';
+    simulateModeBtn.classList.add('active');
+    normalModeBtn.classList.remove('active');
+    simulationControls.classList.remove('hidden');
+    modeIndicator.textContent = 'Simulate Mode';
+    modeIndicator.classList.add('simulate');
+
+    // Stop location tracking in simulate mode
+    if (locationWatchId) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+    }
+
+    console.log('Switched to Simulate Mode');
+}
+
+// ===== Enhanced Simulation =====
+function updateSimulationSpeed(speed) {
+    simulationSpeed = parseInt(speed);
+    simSpeedDisplay.textContent = `${simulationSpeed} km/h`;
+    simSpeedInput.value = speed;
+
+    // Update preset buttons
+    speedPresets.forEach(btn => {
+        if (parseInt(btn.dataset.speed) === simulationSpeed) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // If simulation is running, update the interval
+    if (simulationActive && !simulationPaused) {
+        restartSimulationInterval();
+    }
+}
+
+function startEnhancedSimulation() {
+    if (!currentRoute) {
+        alert('Please set a route first before starting simulation.');
         return;
     }
 
-    simulationMode = true;
-    simulateBtn.classList.add('active');
-    simulateBtn.innerHTML = '<span class="btn-icon">⏹</span> Stop Simulation';
+    // Get route path
+    simulationPath = currentRoute.routes[0].overview_path.map(p => ({
+        lat: p.lat(),
+        lng: p.lng()
+    }));
 
-    // Use route path if available, otherwise simulate towards nearest hazard
-    if (currentRoute && currentRoute.routes[0]) {
-        simulationPath = currentRoute.routes[0].overview_path.map(p => ({
-            lat: p.lat(),
-            lng: p.lng()
-        }));
-    } else {
-        // Find closest hazard and create path to it
-        let closestHazard = null;
-        let closestDistance = Infinity;
-
-        hazardsToUse.forEach(hazard => {
-            const distance = calculateDistance(userPosition, { lat: hazard.lat, lng: hazard.lng });
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestHazard = hazard;
-            }
-        });
-
-        if (!closestHazard) return;
-
-        // Create simulation path towards the hazard
-        simulationPath = createSimulationPath(userPosition, { lat: closestHazard.lat, lng: closestHazard.lng });
+    if (simulationPath.length === 0) {
+        alert('No route path available.');
+        return;
     }
 
+    simulationActive = true;
+    simulationPaused = false;
     simulationIndex = 0;
+    simulationStartPosition = userPosition;
 
-    // Start simulation loop
-    runSimulationStep();
+    // Update UI
+    startSimBtn.classList.add('hidden');
+    pauseSimBtn.classList.remove('hidden');
+    stopSimBtn.classList.remove('hidden');
+    simProgress.classList.remove('hidden');
+
+    // Start simulation
+    restartSimulationInterval();
+
+    console.log(`Simulation started at ${simulationSpeed} km/h`);
 }
 
-function stopSimulation() {
-    simulationMode = false;
-    simulateBtn.classList.remove('active');
-    simulateBtn.innerHTML = '<span class="btn-icon">🚗</span> Simulate Drive';
+function pauseEnhancedSimulation() {
+    if (!simulationActive) return;
 
-    // Reset to actual position
-    if (userPosition) {
-        userMarker.setPosition(userPosition);
-        map.panTo(userPosition);
+    simulationPaused = !simulationPaused;
+
+    if (simulationPaused) {
+        clearInterval(simulationInterval);
+        simulationInterval = null;
+        pauseSimBtn.innerHTML = '<span class="btn-icon">▶</span> Resume';
+        console.log('Simulation paused');
+    } else {
+        restartSimulationInterval();
+        pauseSimBtn.innerHTML = '<span class="btn-icon">⏸</span> Pause';
+        console.log('Simulation resumed');
+    }
+}
+
+function stopEnhancedSimulation() {
+    simulationActive = false;
+    simulationPaused = false;
+
+    if (simulationInterval) {
+        clearInterval(simulationInterval);
+        simulationInterval = null;
+    }
+
+    // Reset UI
+    startSimBtn.classList.remove('hidden');
+    pauseSimBtn.classList.add('hidden');
+    pauseSimBtn.innerHTML = '<span class="btn-icon">⏸</span> Pause';
+    stopSimBtn.classList.add('hidden');
+    simProgress.classList.add('hidden');
+    simProgressFill.style.width = '0%';
+    simProgressText.textContent = '0%';
+
+    // Reset marker to start position
+    if (simulationStartPosition) {
+        userMarker.setPosition(simulationStartPosition);
+        map.panTo(simulationStartPosition);
     }
 
     setSafeState();
+    speedValue.textContent = '0';
+
+    console.log('Simulation stopped');
 }
 
-function createSimulationPath(start, end) {
-    const path = [];
-    const steps = 50;
-
-    for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        path.push({
-            lat: start.lat + (end.lat - start.lat) * t,
-            lng: start.lng + (end.lng - start.lng) * t
-        });
+function restartSimulationInterval() {
+    if (simulationInterval) {
+        clearInterval(simulationInterval);
     }
 
-    return path;
+    // Calculate interval based on speed
+    // At 30 km/h, we want to move about 8.33 meters per second
+    // Typical route path points are about 10-50 meters apart
+    // We'll calculate interval to maintain realistic movement
+    const metersPerSecond = (simulationSpeed * 1000) / 3600;
+    const avgSegmentLength = 20; // Approximate average distance between path points
+    const intervalMs = Math.max(50, (avgSegmentLength / metersPerSecond) * 1000);
+
+    simulationInterval = setInterval(runEnhancedSimulationStep, intervalMs);
 }
 
-function runSimulationStep() {
-    if (!simulationMode || simulationIndex >= simulationPath.length) {
-        stopSimulation();
+function runEnhancedSimulationStep() {
+    if (!simulationActive || simulationPaused || simulationIndex >= simulationPath.length) {
+        if (simulationIndex >= simulationPath.length) {
+            // Simulation complete
+            stopEnhancedSimulation();
+            alert('Simulation complete! You have reached the destination.');
+        }
         return;
     }
 
     const position = simulationPath[simulationIndex];
 
-    // Update marker and check hazards
+    // Update marker position
     userMarker.setPosition(position);
-    map.panTo(position);
 
-    // Simulate speed (around 30 km/h)
-    speedValue.textContent = Math.round(25 + Math.random() * 10);
+    // Pan map to follow (but not too aggressively)
+    if (simulationIndex % 3 === 0) {
+        map.panTo(position);
+    }
+
+    // Display the configured simulation speed with small variation
+    const displaySpeed = simulationSpeed + Math.round((Math.random() - 0.5) * 4);
+    speedValue.textContent = Math.max(0, displaySpeed);
 
     // Check hazards
     const hazardsToCheck = navigationActive ? routeHazards : hazards;
@@ -968,10 +1079,29 @@ function runSimulationStep() {
         updateNavigationHUD();
     }
 
-    simulationIndex++;
+    // Update progress
+    const progress = ((simulationIndex + 1) / simulationPath.length) * 100;
+    simProgressFill.style.width = `${progress}%`;
+    simProgressText.textContent = `${Math.round(progress)}%`;
 
-    // Continue simulation
-    setTimeout(runSimulationStep, 150);
+    simulationIndex++;
+}
+
+// Legacy simulation for backwards compatibility (when just using nearest hazard)
+function createSimulationPath(start, end) {
+    const path = [];
+    const distance = calculateDistance(start, end);
+    const steps = Math.max(20, Math.ceil(distance / 10)); // One point every ~10 meters
+
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        path.push({
+            lat: start.lat + (end.lat - start.lat) * t,
+            lng: start.lng + (end.lng - start.lng) * t
+        });
+    }
+
+    return path;
 }
 
 // ===== Utility Functions =====
@@ -1069,14 +1199,29 @@ function getMapStyles() {
 }
 
 // ===== Event Listeners =====
-simulateBtn.addEventListener('click', () => {
-    if (simulationMode) {
-        stopSimulation();
-    } else {
-        startSimulation();
-    }
+
+// Mode Toggle
+normalModeBtn.addEventListener('click', switchToNormalMode);
+simulateModeBtn.addEventListener('click', switchToSimulateMode);
+
+// Simulation Controls
+startSimBtn.addEventListener('click', startEnhancedSimulation);
+pauseSimBtn.addEventListener('click', pauseEnhancedSimulation);
+stopSimBtn.addEventListener('click', stopEnhancedSimulation);
+
+// Speed Slider
+simSpeedInput.addEventListener('input', (e) => {
+    updateSimulationSpeed(e.target.value);
 });
 
+// Speed Presets
+speedPresets.forEach(btn => {
+    btn.addEventListener('click', () => {
+        updateSimulationSpeed(btn.dataset.speed);
+    });
+});
+
+// Navigation Controls
 getRouteBtn.addEventListener('click', getRoute);
 useLocationBtn.addEventListener('click', useCurrentLocation);
 startNavBtn.addEventListener('click', startNavigation);

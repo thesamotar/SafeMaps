@@ -131,12 +131,14 @@ SafeMaps/
 7. Click **"End"** to stop navigation
 
 ### Simulation Mode
-1. Wait for hazards to load (check the counter in the panel)
-2. Optionally set up a route first for route-based simulation
-3. Click **"Simulate Drive"** button
-4. Your position will move along the route (or toward nearest hazard)
-5. Observe the alert system in action
-6. Click **"Stop Simulation"** to end
+1. Click **\"Simulate\"** button in the Mode toggle to switch from Normal to Simulate mode
+2. Set up a route first (enter destination and click "Get Route")
+3. Adjust the simulation speed using the slider (10-120 km/h) or click a preset (20/40/60/80)
+4. Click **\"Start Simulation\"** to begin
+5. Watch the marker travel along the route at your selected speed
+6. Use **\"Pause\"** to pause/resume or **\"Stop\"** to end simulation
+7. Progress bar shows how far along the route you've traveled
+8. Click **\"Normal\"** button to switch back to real GPS tracking
 
 ### Alert Levels
 | Distance | Status | Visual |
@@ -190,10 +192,30 @@ SafeMaps/
 
 ---
 
+### v1.2.0 — Enhanced Simulation Mode
+
+**Commit:** `302f53f`  
+**Date:** January 22, 2026
+
+#### Changes Made:
+- ✅ Added Normal/Simulate mode toggle with distinct UI states
+- ✅ Replaced simple simulate button with full simulation control panel
+- ✅ Added speed slider (10-120 km/h) with real-time speed display
+- ✅ Added speed preset buttons (20/40/60/80 km/h) for quick selection
+- ✅ Simulation now uses realistic speed-based movement intervals
+- ✅ Added Start/Pause/Resume/Stop controls for simulation
+- ✅ Added progress bar showing simulation completion percentage
+- ✅ Mode indicator in footer shows current mode
+- ✅ Normal mode resumes GPS tracking, Simulate mode pauses it
+- ✅ Simulation follows route path at configured speed
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
 - [x] ~~Implement route planning with hazard warnings~~ ✅ Done in v1.1.0
+- [x] ~~Add simulation with speed control~~ ✅ Done in v1.2.0
 - [ ] Add voice alerts using Web Speech API
 - [ ] Store user preferences in localStorage
 - [ ] Add offline support with service workers

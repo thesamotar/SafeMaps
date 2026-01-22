@@ -411,35 +411,255 @@ body {
   }
 }
 
-/* ===== Simulate Button ===== */
-.simulate-btn {
-  width: 100%;
+/* ===== Mode Toggle Section ===== */
+.mode-toggle-section {
+  margin-bottom: 15px;
+}
+
+.mode-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9aa0a6;
+  margin-bottom: 8px;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+  background: var(--dark-secondary);
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.mode-btn {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px 20px;
-  background: var(--dark-tertiary);
-  color: white;
+  gap: 6px;
+  padding: 10px 14px;
+  background: transparent;
   border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 10px;
+  color: #9aa0a6;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
-.simulate-btn:hover {
+.mode-btn:hover {
+  color: var(--light);
+  background: var(--dark-tertiary);
+}
+
+.mode-btn.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+}
+
+.mode-icon {
+  font-size: 14px;
+}
+
+/* ===== Simulation Controls ===== */
+.simulation-controls {
   background: var(--dark-secondary);
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid var(--glass-border);
+}
+
+.simulation-controls.hidden {
+  display: none;
+}
+
+.speed-control {
+  margin-bottom: 15px;
+}
+
+.speed-control label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.control-label {
+  font-size: 12px;
+  color: #9aa0a6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.speed-display {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Speed Slider */
+#sim-speed-input {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--dark-tertiary);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+#sim-speed-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+#sim-speed-input::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+#sim-speed-input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Speed Presets */
+.speed-presets {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.speed-preset {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--dark-tertiary);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: #9aa0a6;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.speed-preset:hover {
+  background: var(--dark);
+  color: var(--light);
+  border-color: var(--primary);
+}
+
+.speed-preset.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Simulation Actions */
+.sim-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.sim-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sim-btn.hidden {
+  display: none;
+}
+
+.sim-btn.start {
+  background: linear-gradient(135deg, var(--success), #2e7d32);
+  color: white;
+}
+
+.sim-btn.start:hover {
+  box-shadow: 0 4px 15px rgba(52, 168, 83, 0.4);
   transform: translateY(-1px);
 }
 
-.simulate-btn:active {
-  transform: translateY(0);
+.sim-btn.pause {
+  background: linear-gradient(135deg, var(--warning), #f9a825);
+  color: var(--dark);
 }
 
-.simulate-btn.active {
-  background: linear-gradient(135deg, var(--danger), #c5221f);
+.sim-btn.pause:hover {
+  box-shadow: 0 4px 15px rgba(251, 188, 4, 0.4);
+}
+
+.sim-btn.stop {
+  background: var(--dark-tertiary);
+  color: var(--light);
+}
+
+.sim-btn.stop:hover {
+  background: var(--danger);
+}
+
+/* Simulation Progress */
+.sim-progress {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sim-progress.hidden {
+  display: none;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--dark-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  border-radius: 4px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9aa0a6;
+  min-width: 35px;
+  text-align: right;
 }
 
 /* ===== Panel Footer ===== */
@@ -447,9 +667,25 @@ body {
   margin-top: 15px;
   padding-top: 12px;
   border-top: 1px solid var(--glass-border);
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 12px;
   color: #9aa0a6;
+}
+
+.mode-indicator {
+  padding: 4px 8px;
+  background: var(--dark-secondary);
+  border-radius: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-indicator.simulate {
+  background: rgba(26, 115, 232, 0.2);
+  color: var(--primary);
 }
 
 /* ===== Navigation HUD ===== */
