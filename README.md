@@ -211,6 +211,24 @@ SafeMaps/
 
 ---
 
+### v1.3.0 — Deceleration Detection & Hazard Reporting
+
+**Commit:** `656b297`  
+**Date:** January 24, 2026
+
+#### Changes Made:
+- ✅ Added deceleration detection system (monitors speed drops > 15 km/h)
+- ✅ Added hazard report modal with 6 classification options (Speed Bump, Pothole, Crossing, Turn, Traffic, Other)
+- ✅ Added pending reports modal for reviewing deferred reports at end of navigation
+- ✅ Implemented speed history tracking (stores last 5 readings)
+- ✅ Smart popup timing: immediate prompt if speed < 20 km/h, deferred if still moving fast
+- ✅ Reports stored in localStorage for persistence
+- ✅ Works in both real GPS tracking and simulation modes
+- ✅ Added glassmorphism styling for report modals
+- ✅ Created implementation.md roadmap for future data collection features
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
@@ -219,9 +237,11 @@ SafeMaps/
 - [ ] Add voice alerts using Web Speech API
 - [ ] Store user preferences in localStorage
 - [ ] Add offline support with service workers
-- [ ] Implement hazard reporting feature
+- [x] ~~Implement hazard reporting feature~~ ✅ Done in v1.3.0
 - [ ] Add night/day mode toggle
 - [ ] Add alternate route suggestions
+- [ ] Add accelerometer-based bump detection
+- [ ] Add voice-based hazard reporting
 
 ---
 
