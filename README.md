@@ -39,6 +39,8 @@ GoogleMapsSafe is a proof-of-concept application designed to enhance driver safe
 | **Google Places API** | Location autocomplete for start/end inputs |
 | **Google Directions API** | Route calculation and turn-by-turn navigation |
 | **OpenStreetMap Overpass API** | Real-time traffic calming data |
+| **Firebase Firestore** | Crowdsourced hazard data storage |
+| **Firebase Auth** | Anonymous authentication for users |
 | **Web Audio API** | Warning sound generation |
 | **CSS3** | Glassmorphism UI with animations |
 
@@ -55,6 +57,9 @@ GoogleMapsSafe is a proof-of-concept application designed to enhance driver safe
   - Places API
   - Directions API
   - Geometry Library
+- **Firebase Project** (for crowdsourced hazard data):
+  - Firestore Database
+  - Anonymous Authentication
 
 ### Installation
 
@@ -69,14 +74,25 @@ GoogleMapsSafe is a proof-of-concept application designed to enhance driver safe
    npm install
    ```
 
-3. **Configure your API key**
+3. **Configure your API keys**
    
    Create a `.env` file in the root directory (or edit the existing one):
    ```env
+   # Google Maps
    VITE_GOOGLE_MAPS_KEY=your_google_maps_api_key_here
+   
+   # Firebase (optional - for crowdsourced hazard data)
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
    ```
    
    > ⚠️ **Important**: Never commit your `.env` file to version control. It's already listed in `.gitignore`.
+   
+   > 💡 **Note**: The app works without Firebase config (local-only mode), but crowdsourced hazard sharing requires Firebase.
 
 4. **Start the development server**
    ```bash
@@ -103,11 +119,12 @@ GoogleMapsSafe is a proof-of-concept application designed to enhance driver safe
 SafeMaps/
 ├── index.html          # Main HTML with HUD overlay
 ├── package.json        # Project dependencies and scripts
-├── .env                # API key (git-ignored)
+├── .env                # API keys (git-ignored)
 ├── .gitignore          # Git ignore rules
 ├── README.md           # This file
 └── src/
     ├── main.js         # Core application logic
+    ├── firebase.js     # Firebase/Firestore integration
     └── style.css       # Styling with glassmorphism theme
 ```
 
@@ -229,6 +246,23 @@ SafeMaps/
 
 ---
 
+### v1.4.0 — Firebase Integration for Crowdsourced Data
+
+**Commit:** `bc60539`  
+**Date:** January 24, 2026
+
+#### Changes Made:
+- ✅ Added Firebase Firestore integration for crowdsourced hazard storage
+- ✅ Implemented Anonymous Authentication for user sessions
+- ✅ Created `firebase.js` module with save/fetch functions
+- ✅ `saveHazardToFirestore()` stores user-reported hazards to cloud
+- ✅ `fetchCrowdsourcedHazards()` retrieves hazards by geographic bounds
+- ✅ Graceful fallback to local-only mode when Firebase not configured
+- ✅ Environment variables for secure Firebase configuration
+- ✅ Updated README with Firebase setup instructions
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
@@ -238,6 +272,7 @@ SafeMaps/
 - [ ] Store user preferences in localStorage
 - [ ] Add offline support with service workers
 - [x] ~~Implement hazard reporting feature~~ ✅ Done in v1.3.0
+- [x] ~~Add crowdsourced hazard sharing~~ ✅ Done in v1.4.0
 - [ ] Add night/day mode toggle
 - [ ] Add alternate route suggestions
 - [ ] Add accelerometer-based bump detection
