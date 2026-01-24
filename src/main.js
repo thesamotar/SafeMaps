@@ -1,4 +1,5 @@
 import './style.css';
+import { initializeFirebase, saveHazardToFirestore, fetchCrowdsourcedHazards, isFirebaseConfigured } from './firebase.js';
 
 // ===== Configuration =====
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
@@ -116,6 +117,9 @@ async function loadGoogleMapsAPI() {
 // ===== Map Initialization =====
 async function initMap() {
     try {
+        // Initialize Firebase (optional - works without config)
+        initializeFirebase();
+
         await loadGoogleMapsAPI();
 
         // Get user's current position
@@ -1068,8 +1072,9 @@ function dismissPendingReports() {
     hidePendingReportsModal();
 }
 
-// ===== Local Storage for Hazard Reports =====
-function saveHazardReport(report) {
+// ===== Hazard Report Storage (Firestore + localStorage backup) =====
+async function saveHazardReport(report) {
+    // Always save to localStorage as backup
     try {
         const storedReports = JSON.parse(localStorage.getItem('hazardReports') || '[]');
         storedReports.push({
@@ -1079,7 +1084,15 @@ function saveHazardReport(report) {
         localStorage.setItem('hazardReports', JSON.stringify(storedReports));
         console.log('Saved hazard report to localStorage, total:', storedReports.length);
     } catch (error) {
-        console.error('Error saving hazard report:', error);
+        console.error('Error saving hazard report to localStorage:', error);
+    }
+
+    // Also sync to Firestore if available
+    if (isFirebaseConfigured()) {
+        const firestoreId = await saveHazardToFirestore(report);
+        if (firestoreId) {
+            console.log('Hazard synced to cloud:', firestoreId);
+        }
     }
 }
 
