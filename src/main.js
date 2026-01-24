@@ -38,6 +38,15 @@ let simulationPath = [];
 let simulationInterval = null;
 let simulationStartPosition = null;
 
+// ===== Deceleration Detection State =====
+const DECEL_THRESHOLD = 15; // km/h drop to trigger detection
+const LOW_SPEED_THRESHOLD = 20; // km/h - if speed below this, show immediate popup
+const SPEED_HISTORY_SIZE = 5; // Number of speed readings to track
+let speedHistory = []; // Array of {speed, timestamp, position}
+let pendingReports = []; // Reports that need user input (other/high-speed cases)
+let currentDecelEvent = null; // Current deceleration event awaiting classification
+let reportModalTimeout = null; // Timeout for auto-closing modal
+
 // ===== DOM Elements =====
 const speedValue = document.getElementById('speed-value');
 const distanceValue = document.getElementById('distance-value');
@@ -76,6 +85,15 @@ const simProgress = document.getElementById('sim-progress');
 const simProgressFill = document.getElementById('sim-progress-fill');
 const simProgressText = document.getElementById('sim-progress-text');
 const modeIndicator = document.getElementById('mode-indicator');
+
+// Hazard Report Modal DOM Elements
+const hazardReportModal = document.getElementById('hazard-report-modal');
+const reportOptions = document.querySelectorAll('.report-option');
+const skipReportBtn = document.getElementById('skip-report-btn');
+const pendingReportsModal = document.getElementById('pending-reports-modal');
+const pendingReportsList = document.getElementById('pending-reports-list');
+const submitPendingBtn = document.getElementById('submit-pending-btn');
+const dismissPendingBtn = document.getElementById('dismiss-pending-btn');
 
 // ===== Google Maps Loader =====
 async function loadGoogleMapsAPI() {
@@ -464,6 +482,14 @@ function endNavigation() {
     startNavBtn.innerHTML = '<span class="btn-icon">▶</span> Start Navigation';
     startNavBtn.disabled = false;
 
+    // Clear speed history
+    speedHistory = [];
+
+    // Check for pending reports
+    if (pendingReports.length > 0) {
+        showPendingReportsModal();
+    }
+
     console.log('Navigation ended');
 }
 
@@ -782,6 +808,55 @@ function updateUserPosition(position) {
         userMarker.setPosition(newPosition);
     }
 
+    // ===== Deceleration Detection =====
+    if (navigationActive) {
+        // Add to speed history
+        speedHistory.push({
+            speed: speed,
+            timestamp: now,
+            position: { ...newPosition }
+        });
+
+        // Keep only recent readings
+        if (speedHistory.length > SPEED_HISTORY_SIZE) {
+            speedHistory.shift();
+        }
+
+        // Check for deceleration (need at least 2 readings)
+        if (speedHistory.length >= 2) {
+            const previousReading = speedHistory[speedHistory.length - 2];
+            const speedDrop = previousReading.speed - speed;
+
+            // Detect significant deceleration
+            if (speedDrop >= DECEL_THRESHOLD && previousReading.speed > LOW_SPEED_THRESHOLD) {
+                console.log(`Deceleration detected: ${previousReading.speed.toFixed(1)} → ${speed.toFixed(1)} km/h (drop: ${speedDrop.toFixed(1)})`);
+
+                // Create deceleration event
+                const decelEvent = {
+                    id: Date.now(),
+                    lat: newPosition.lat,
+                    lng: newPosition.lng,
+                    timestamp: now,
+                    speedBefore: previousReading.speed,
+                    speedAfter: speed,
+                    hazardType: null // To be filled by user
+                };
+
+                // Check if speed is now below threshold (user likely stopped)
+                if (speed < LOW_SPEED_THRESHOLD) {
+                    // Show immediate popup
+                    currentDecelEvent = decelEvent;
+                    showHazardReportModal();
+                } else {
+                    // Add to pending reports (will ask at end of navigation)
+                    decelEvent.hazardType = 'unknown';
+                    pendingReports.push(decelEvent);
+                    console.log('Added to pending reports (high speed)', pendingReports.length);
+                }
+            }
+        }
+    }
+
     // Check for nearby hazards (use route hazards if navigation is active)
     const hazardsToCheck = navigationActive ? routeHazards : hazards;
     checkNearbyHazards(newPosition, hazardsToCheck);
@@ -890,6 +965,160 @@ function playWarningSound() {
     } catch (error) {
         console.error('Error playing warning sound:', error);
     }
+}
+
+// ===== Hazard Report Modal Functions =====
+function showHazardReportModal() {
+    hazardReportModal.classList.remove('hidden');
+    console.log('Showing hazard report modal');
+}
+
+function hideHazardReportModal() {
+    hazardReportModal.classList.add('hidden');
+    currentDecelEvent = null;
+}
+
+function handleHazardReport(hazardType) {
+    if (!currentDecelEvent) return;
+
+    currentDecelEvent.hazardType = hazardType;
+    saveHazardReport(currentDecelEvent);
+
+    console.log('Hazard reported:', hazardType, currentDecelEvent);
+    hideHazardReportModal();
+
+    // If user selected 'other', add to pending for later clarification
+    if (hazardType === 'other') {
+        pendingReports.push({ ...currentDecelEvent });
+    }
+}
+
+function skipHazardReport() {
+    if (currentDecelEvent) {
+        // Add to pending reports for later
+        currentDecelEvent.hazardType = 'skipped';
+        pendingReports.push(currentDecelEvent);
+        console.log('Report skipped, added to pending');
+    }
+    hideHazardReportModal();
+}
+
+// ===== Pending Reports Modal Functions =====
+function showPendingReportsModal() {
+    if (pendingReports.length === 0) {
+        console.log('No pending reports');
+        return;
+    }
+
+    // Build pending reports list
+    pendingReportsList.innerHTML = '';
+
+    pendingReports.forEach((report, index) => {
+        const item = document.createElement('div');
+        item.className = 'pending-item';
+        item.innerHTML = `
+            <span class="pending-item-icon">${getHazardIcon(report.hazardType)}</span>
+            <div class="pending-item-info">
+                <div class="pending-item-type">${getHazardTypeLabel(report.hazardType)}</div>
+                <div class="pending-item-location">${report.lat.toFixed(5)}, ${report.lng.toFixed(5)}</div>
+            </div>
+            <select class="pending-item-select" data-index="${index}">
+                <option value="speed_bump" ${report.hazardType === 'speed_bump' ? 'selected' : ''}>Speed Bump</option>
+                <option value="pothole" ${report.hazardType === 'pothole' ? 'selected' : ''}>Pothole</option>
+                <option value="crossing" ${report.hazardType === 'crossing' ? 'selected' : ''}>Crossing</option>
+                <option value="turn" ${report.hazardType === 'turn' ? 'selected' : ''}>Sharp Turn</option>
+                <option value="traffic" ${report.hazardType === 'traffic' ? 'selected' : ''}>Traffic</option>
+                <option value="other" ${report.hazardType === 'other' || report.hazardType === 'unknown' || report.hazardType === 'skipped' ? 'selected' : ''}>Other/Unknown</option>
+            </select>
+        `;
+        pendingReportsList.appendChild(item);
+    });
+
+    pendingReportsModal.classList.remove('hidden');
+    console.log('Showing pending reports modal with', pendingReports.length, 'reports');
+}
+
+function hidePendingReportsModal() {
+    pendingReportsModal.classList.add('hidden');
+}
+
+function submitPendingReports() {
+    // Update types from dropdowns
+    const selects = pendingReportsList.querySelectorAll('.pending-item-select');
+    selects.forEach(select => {
+        const index = parseInt(select.dataset.index);
+        if (pendingReports[index]) {
+            pendingReports[index].hazardType = select.value;
+        }
+    });
+
+    // Save all reports
+    pendingReports.forEach(report => {
+        saveHazardReport(report);
+    });
+
+    console.log('Submitted', pendingReports.length, 'pending reports');
+    pendingReports = [];
+    hidePendingReportsModal();
+}
+
+function dismissPendingReports() {
+    console.log('Dismissed pending reports');
+    pendingReports = [];
+    hidePendingReportsModal();
+}
+
+// ===== Local Storage for Hazard Reports =====
+function saveHazardReport(report) {
+    try {
+        const storedReports = JSON.parse(localStorage.getItem('hazardReports') || '[]');
+        storedReports.push({
+            ...report,
+            savedAt: Date.now()
+        });
+        localStorage.setItem('hazardReports', JSON.stringify(storedReports));
+        console.log('Saved hazard report to localStorage, total:', storedReports.length);
+    } catch (error) {
+        console.error('Error saving hazard report:', error);
+    }
+}
+
+function getStoredReports() {
+    try {
+        return JSON.parse(localStorage.getItem('hazardReports') || '[]');
+    } catch (error) {
+        console.error('Error reading stored reports:', error);
+        return [];
+    }
+}
+
+// ===== Hazard Type Helpers =====
+function getHazardIcon(type) {
+    const icons = {
+        'speed_bump': '🔶',
+        'pothole': '🕳️',
+        'crossing': '🚶',
+        'turn': '↪️',
+        'traffic': '🚗',
+        'other': '❓',
+        'unknown': '❓',
+        'skipped': '⏭️'
+    };
+    return icons[type] || '❓';
+}
+
+function getHazardTypeLabel(type) {
+    const labels = {
+        'speed_bump': 'Speed Bump',
+        'pothole': 'Pothole',
+        'crossing': 'Pedestrian Crossing',
+        'turn': 'Sharp Turn',
+        'traffic': 'Traffic',
+        'other': 'Other',
+        'unknown': 'Unknown',
+        'skipped': 'Skipped'
+    };
+    return labels[type] || 'Unknown';
 }
 
 // ===== Mode Toggle =====
@@ -1057,9 +1286,11 @@ function runEnhancedSimulationStep() {
     }
 
     const position = simulationPath[simulationIndex];
+    const now = Date.now();
 
     // Update marker position
     userMarker.setPosition(position);
+    userPosition = position;
 
     // Pan map to follow (but not too aggressively)
     if (simulationIndex % 3 === 0) {
@@ -1068,7 +1299,55 @@ function runEnhancedSimulationStep() {
 
     // Display the configured simulation speed with small variation
     const displaySpeed = simulationSpeed + Math.round((Math.random() - 0.5) * 4);
-    speedValue.textContent = Math.max(0, displaySpeed);
+    const effectiveSpeed = Math.max(0, displaySpeed);
+    speedValue.textContent = effectiveSpeed;
+
+    // ===== Deceleration Detection for Simulation =====
+    if (navigationActive) {
+        // Add to speed history
+        speedHistory.push({
+            speed: effectiveSpeed,
+            timestamp: now,
+            position: { ...position }
+        });
+
+        // Keep only recent readings
+        if (speedHistory.length > SPEED_HISTORY_SIZE) {
+            speedHistory.shift();
+        }
+
+        // Check for deceleration (need at least 2 readings)
+        if (speedHistory.length >= 2) {
+            const previousReading = speedHistory[speedHistory.length - 2];
+            const speedDrop = previousReading.speed - effectiveSpeed;
+
+            // Detect significant deceleration
+            if (speedDrop >= DECEL_THRESHOLD && previousReading.speed > LOW_SPEED_THRESHOLD) {
+                console.log(`[SIM] Deceleration detected: ${previousReading.speed.toFixed(1)} → ${effectiveSpeed} km/h (drop: ${speedDrop.toFixed(1)})`);
+
+                // Create deceleration event
+                const decelEvent = {
+                    id: Date.now(),
+                    lat: position.lat,
+                    lng: position.lng,
+                    timestamp: now,
+                    speedBefore: previousReading.speed,
+                    speedAfter: effectiveSpeed,
+                    hazardType: null
+                };
+
+                // Check if speed is now below threshold
+                if (effectiveSpeed < LOW_SPEED_THRESHOLD) {
+                    currentDecelEvent = decelEvent;
+                    showHazardReportModal();
+                } else {
+                    decelEvent.hazardType = 'unknown';
+                    pendingReports.push(decelEvent);
+                    console.log('[SIM] Added to pending reports (high speed)', pendingReports.length);
+                }
+            }
+        }
+    }
 
     // Check hazards
     const hazardsToCheck = navigationActive ? routeHazards : hazards;
@@ -1227,6 +1506,18 @@ useLocationBtn.addEventListener('click', useCurrentLocation);
 startNavBtn.addEventListener('click', startNavigation);
 clearRouteBtn.addEventListener('click', clearRoute);
 endNavBtn.addEventListener('click', endNavigation);
+
+// Hazard Report Modal Controls
+reportOptions.forEach(btn => {
+    btn.addEventListener('click', () => {
+        handleHazardReport(btn.dataset.type);
+    });
+});
+skipReportBtn.addEventListener('click', skipHazardReport);
+
+// Pending Reports Modal Controls
+submitPendingBtn.addEventListener('click', submitPendingReports);
+dismissPendingBtn.addEventListener('click', dismissPendingReports);
 
 // Handle Enter key in inputs
 startInput.addEventListener('keypress', (e) => {

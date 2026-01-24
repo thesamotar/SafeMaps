@@ -916,6 +916,166 @@ body {
   z-index: 1;
 }
 
+/* ===== Hazard Report Modal ===== */
+.report-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 340px;
+  width: 90%;
+  box-shadow: var(--shadow);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-title {
+  color: var(--light);
+  font-size: 18px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.report-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.report-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--dark-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.report-option:hover {
+  background: var(--primary);
+  transform: scale(1.02);
+}
+
+.report-option:active {
+  transform: scale(0.98);
+}
+
+.option-icon {
+  font-size: 28px;
+}
+
+.option-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.skip-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid var(--dark-tertiary);
+  border-radius: 8px;
+  color: #9aa0a6;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.skip-btn:hover {
+  background: var(--dark-tertiary);
+  color: var(--light);
+}
+
+/* ===== Pending Reports Modal ===== */
+.pending-modal {
+  max-width: 400px;
+}
+
+.pending-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.pending-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--dark-secondary);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.pending-item-icon {
+  font-size: 24px;
+}
+
+.pending-item-info {
+  flex: 1;
+}
+
+.pending-item-type {
+  color: var(--light);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.pending-item-location {
+  color: #9aa0a6;
+  font-size: 12px;
+}
+
+.pending-item-select {
+  padding: 6px 10px;
+  background: var(--dark-tertiary);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: var(--light);
+  font-size: 12px;
+}
+
+.pending-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.pending-actions .primary-btn,
+.pending-actions .skip-btn {
+  flex: 1;
+}
+
 /* ===== Hidden Utility ===== */
 .hidden {
   display: none !important;

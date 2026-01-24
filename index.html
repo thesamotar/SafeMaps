@@ -178,6 +178,52 @@
   <!-- Alert Flash Overlay -->
   <div id="flash-overlay" class="flash-overlay"></div>
 
+  <!-- Hazard Report Modal -->
+  <div id="hazard-report-modal" class="report-modal hidden">
+    <div class="modal-content">
+      <h3 class="modal-title">🚧 What caused you to slow down?</h3>
+      <div class="report-options">
+        <button class="report-option" data-type="speed_bump">
+          <span class="option-icon">🔶</span>
+          <span class="option-label">Speed Bump</span>
+        </button>
+        <button class="report-option" data-type="pothole">
+          <span class="option-icon">🕳️</span>
+          <span class="option-label">Pothole</span>
+        </button>
+        <button class="report-option" data-type="crossing">
+          <span class="option-icon">🚶</span>
+          <span class="option-label">Crossing</span>
+        </button>
+        <button class="report-option" data-type="turn">
+          <span class="option-icon">↪️</span>
+          <span class="option-label">Sharp Turn</span>
+        </button>
+        <button class="report-option" data-type="traffic">
+          <span class="option-icon">🚗</span>
+          <span class="option-label">Traffic</span>
+        </button>
+        <button class="report-option" data-type="other">
+          <span class="option-icon">❓</span>
+          <span class="option-label">Other</span>
+        </button>
+      </div>
+      <button id="skip-report-btn" class="skip-btn">Skip</button>
+    </div>
+  </div>
+
+  <!-- Pending Reports Modal (shown on end navigation) -->
+  <div id="pending-reports-modal" class="report-modal hidden">
+    <div class="modal-content pending-modal">
+      <h3 class="modal-title">📋 Review Pending Reports</h3>
+      <div id="pending-reports-list" class="pending-list"></div>
+      <div class="pending-actions">
+        <button id="submit-pending-btn" class="primary-btn">Submit All</button>
+        <button id="dismiss-pending-btn" class="skip-btn">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/src/main.js"></script>
 </body>
 
