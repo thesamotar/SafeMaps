@@ -57,6 +57,11 @@ let lastJoltTime = 0;
 let motionPermissionGranted = false;
 let currentJoltEvent = null;       // Current jolt event awaiting classification
 
+// ===== Sequential Pending Reports Review State =====
+let pendingReviewIndex = 0;
+let pendingReviewMarker = null;
+let isReviewingPending = false;
+
 // ===== DOM Elements =====
 const speedValue = document.getElementById('speed-value');
 const distanceValue = document.getElementById('distance-value');
@@ -1062,6 +1067,12 @@ function hideHazardReportModal() {
 }
 
 function handleHazardReport(hazardType) {
+    // Check if we're in pending review mode
+    if (isReviewingPending) {
+        handlePendingReportClassification(hazardType);
+        return;
+    }
+
     // Handle either deceleration or jolt events
     const activeEvent = currentDecelEvent || currentJoltEvent;
     if (!activeEvent) return;
@@ -1079,6 +1090,12 @@ function handleHazardReport(hazardType) {
 }
 
 function skipHazardReport() {
+    // Check if we're in pending review mode
+    if (isReviewingPending) {
+        skipPendingReportReview();
+        return;
+    }
+
     const activeEvent = currentDecelEvent || currentJoltEvent;
     if (activeEvent) {
         // Add to pending reports for later
@@ -1089,69 +1106,177 @@ function skipHazardReport() {
     hideHazardReportModal();
 }
 
-// ===== Pending Reports Modal Functions =====
-function showPendingReportsModal() {
+// ===== Sequential Pending Reports Review =====
+
+/**
+ * Start reviewing pending reports one by one
+ * Each report location is shown on the map with a marker
+ */
+function startPendingReportsReview() {
     if (pendingReports.length === 0) {
-        console.log('No pending reports');
+        console.log('No pending reports to review');
         return;
     }
 
-    // Build pending reports list
-    pendingReportsList.innerHTML = '';
+    isReviewingPending = true;
+    pendingReviewIndex = 0;
 
-    pendingReports.forEach((report, index) => {
-        const item = document.createElement('div');
-        item.className = 'pending-item';
-        item.innerHTML = `
-            <span class="pending-item-icon">${getHazardIcon(report.hazardType)}</span>
-            <div class="pending-item-info">
-                <div class="pending-item-type">${getHazardTypeLabel(report.hazardType)}</div>
-                <div class="pending-item-location">${report.lat.toFixed(5)}, ${report.lng.toFixed(5)}</div>
-            </div>
-            <select class="pending-item-select" data-index="${index}">
-                <option value="speed_bump" ${report.hazardType === 'speed_bump' ? 'selected' : ''}>Speed Bump</option>
-                <option value="pothole" ${report.hazardType === 'pothole' ? 'selected' : ''}>Pothole</option>
-                <option value="crossing" ${report.hazardType === 'crossing' ? 'selected' : ''}>Crossing</option>
-                <option value="turn" ${report.hazardType === 'turn' ? 'selected' : ''}>Sharp Turn</option>
-                <option value="traffic" ${report.hazardType === 'traffic' ? 'selected' : ''}>Traffic</option>
-                <option value="other" ${report.hazardType === 'other' || report.hazardType === 'unknown' || report.hazardType === 'skipped' ? 'selected' : ''}>Other/Unknown</option>
-            </select>
-        `;
-        pendingReportsList.appendChild(item);
+    console.log(`Starting review of ${pendingReports.length} pending reports`);
+    showNextPendingReport();
+}
+
+/**
+ * Show the next pending report on the map
+ */
+function showNextPendingReport() {
+    // Clean up previous marker
+    if (pendingReviewMarker) {
+        pendingReviewMarker.setMap(null);
+        pendingReviewMarker = null;
+    }
+
+    // Check if we're done
+    if (pendingReviewIndex >= pendingReports.length) {
+        finishPendingReportsReview();
+        return;
+    }
+
+    const report = pendingReports[pendingReviewIndex];
+    const position = { lat: report.lat, lng: report.lng };
+
+    // Zoom to the report location
+    map.setCenter(position);
+    map.setZoom(18); // Close zoom to show exact location
+
+    // Create a pulsing marker at the location
+    pendingReviewMarker = new google.maps.Marker({
+        position: position,
+        map: map,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 20,
+            fillColor: '#ff5722',
+            fillOpacity: 0.8,
+            strokeColor: '#ffffff',
+            strokeWeight: 4
+        },
+        zIndex: 1000,
+        animation: google.maps.Animation.BOUNCE
     });
 
-    pendingReportsModal.classList.remove('hidden');
-    console.log('Showing pending reports modal with', pendingReports.length, 'reports');
+    // Update modal title to show progress
+    const modalTitle = hazardReportModal.querySelector('.modal-title');
+    if (modalTitle) {
+        modalTitle.textContent = `📍 Location ${pendingReviewIndex + 1}/${pendingReports.length}: What was here?`;
+    }
+
+    // Set the current event for the modal handler
+    currentDecelEvent = report;
+    currentJoltEvent = null;
+
+    // Show the classification modal
+    showHazardReportModal();
+
+    console.log(`Showing pending report ${pendingReviewIndex + 1}/${pendingReports.length} at`, position);
+}
+
+/**
+ * Handle classification of a pending report during review
+ */
+function handlePendingReportClassification(hazardType) {
+    if (!isReviewingPending || pendingReviewIndex >= pendingReports.length) return;
+
+    const report = pendingReports[pendingReviewIndex];
+    report.hazardType = hazardType;
+
+    // Save immediately
+    saveHazardReport(report);
+    console.log(`Pending report ${pendingReviewIndex + 1} classified as:`, hazardType);
+
+    // Move to next report
+    pendingReviewIndex++;
+    hideHazardReportModal();
+
+    // Small delay before showing next to let user see the map
+    setTimeout(() => {
+        showNextPendingReport();
+    }, 500);
+}
+
+/**
+ * Skip current pending report during review
+ */
+function skipPendingReportReview() {
+    if (!isReviewingPending) return;
+
+    console.log(`Skipped pending report ${pendingReviewIndex + 1}`);
+
+    // Don't save skipped reports during review
+    pendingReviewIndex++;
+    hideHazardReportModal();
+
+    setTimeout(() => {
+        showNextPendingReport();
+    }, 300);
+}
+
+/**
+ * Finish the pending reports review
+ */
+function finishPendingReportsReview() {
+    // Clean up
+    if (pendingReviewMarker) {
+        pendingReviewMarker.setMap(null);
+        pendingReviewMarker = null;
+    }
+
+    isReviewingPending = false;
+    pendingReports = [];
+
+    // Reset modal title
+    const modalTitle = hazardReportModal.querySelector('.modal-title');
+    if (modalTitle) {
+        modalTitle.textContent = '🚧 What caused you to slow down?';
+    }
+
+    // Reset map zoom
+    if (userPosition) {
+        map.setCenter(userPosition);
+        map.setZoom(15);
+    }
+
+    console.log('Finished reviewing all pending reports');
+}
+
+/**
+ * Dismiss all remaining pending reports
+ */
+function dismissAllPendingReports() {
+    console.log('Dismissed all pending reports');
+    hideHazardReportModal();
+    finishPendingReportsReview();
+}
+
+// Legacy functions for backwards compatibility
+function showPendingReportsModal() {
+    startPendingReportsReview();
 }
 
 function hidePendingReportsModal() {
-    pendingReportsModal.classList.add('hidden');
+    // This is now handled by the sequential review
+    if (pendingReportsModal) {
+        pendingReportsModal.classList.add('hidden');
+    }
 }
 
 function submitPendingReports() {
-    // Update types from dropdowns
-    const selects = pendingReportsList.querySelectorAll('.pending-item-select');
-    selects.forEach(select => {
-        const index = parseInt(select.dataset.index);
-        if (pendingReports[index]) {
-            pendingReports[index].hazardType = select.value;
-        }
-    });
-
-    // Save all reports
-    pendingReports.forEach(report => {
-        saveHazardReport(report);
-    });
-
-    console.log('Submitted', pendingReports.length, 'pending reports');
+    // Not used in new flow, but kept for safety
     pendingReports = [];
     hidePendingReportsModal();
 }
 
 function dismissPendingReports() {
-    console.log('Dismissed pending reports');
-    pendingReports = [];
-    hidePendingReportsModal();
+    dismissAllPendingReports();
 }
 
 // ===== Hazard Report Storage (Firestore + localStorage backup) =====
