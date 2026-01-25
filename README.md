@@ -263,6 +263,24 @@ SafeMaps/
 
 ---
 
+### v1.5.0 — Vertical Jolt Detection & Crowdsourced Hazard Display
+
+**Commit:** `9df747e`  
+**Date:** January 25, 2026
+
+#### Changes Made:
+- ✅ Added accelerometer-based vertical jolt detection for speed breaker detection
+- ✅ Device Motion API integration with iOS permission handling
+- ✅ Jolt detection with 1.5g threshold and 2-second cooldown
+- ✅ Speed filtering (>10 km/h) to ignore phone handling while stopped
+- ✅ Smart popup: immediate if stopped, deferred if still driving
+- ✅ Added "Simulate Jolt" button for testing in simulation mode
+- ✅ Crowdsourced hazards now fetched from Firestore alongside OSM data
+- ✅ Cyan/teal markers distinguish crowdsourced hazards from OSM data
+- ✅ Info popups show source (📱 Crowdsourced vs 🗺️ OSM) and verification status
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
@@ -273,10 +291,10 @@ SafeMaps/
 - [ ] Add offline support with service workers
 - [x] ~~Implement hazard reporting feature~~ ✅ Done in v1.3.0
 - [x] ~~Add crowdsourced hazard sharing~~ ✅ Done in v1.4.0
+- [x] ~~Add accelerometer-based bump detection~~ ✅ Done in v1.5.0
+- [ ] Add voice-based hazard reporting
 - [ ] Add night/day mode toggle
 - [ ] Add alternate route suggestions
-- [ ] Add accelerometer-based bump detection
-- [ ] Add voice-based hazard reporting
 
 ---
 
