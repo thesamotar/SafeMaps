@@ -7,13 +7,20 @@ To overcome the sparsity of OpenStreetMap data in certain regions by crowdsourci
 
 ### 1. Passive Detection (Automatic)
 
-#### A. Vertical Jolt Detection (Accelerometer)
+#### A. Vertical Jolt Detection (Accelerometer) ✅ IMPLEMENTED
 Uses the device's accelerometer to detect sudden vertical movements indicative of speed bumps or potholes.
 - **API**: `window.addEventListener('devicemotion', handleMotion)`
 - **Logic**: Monitor `accelerationIncludingGravity.z`.
 - **Threshold**: sudden spike > 1.5g (adjustable).
 - **Filter**: Must happen while speed > 10 km/h (to ignore phone handling while stopped).
-- **Status**: ⏳ Not Implemented
+- **Status**: ✅ **Implemented**
+- **Implementation Details**:
+  - iOS permission handling via `DeviceMotionEvent.requestPermission()`
+  - 2-second cooldown between detections
+  - If speed < 20 km/h → immediate popup shown
+  - If speed >= 20 km/h → added to pending reports (shown at end of navigation)
+  - Distinctive sound effect for jolt detection
+  - "Simulate Jolt" button for testing
 
 #### B. Sudden Deceleration (GPS) ✅ IMPLEMENTED
 Uses GPS speed updates to detect rapid braking.

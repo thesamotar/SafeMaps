@@ -48,6 +48,15 @@ let pendingReports = []; // Reports that need user input (other/high-speed cases
 let currentDecelEvent = null; // Current deceleration event awaiting classification
 let reportModalTimeout = null; // Timeout for auto-closing modal
 
+// ===== Vertical Jolt Detection State =====
+const JOLT_THRESHOLD = 1.5;        // g-force threshold for jolt detection
+const JOLT_MIN_SPEED = 10;         // km/h - minimum speed to consider jolt valid
+const JOLT_COOLDOWN = 2000;        // ms - cooldown between jolt detections
+let accelerometerActive = false;
+let lastJoltTime = 0;
+let motionPermissionGranted = false;
+let currentJoltEvent = null;       // Current jolt event awaiting classification
+
 // ===== DOM Elements =====
 const speedValue = document.getElementById('speed-value');
 const distanceValue = document.getElementById('distance-value');
@@ -344,7 +353,17 @@ async function fetchHazardsAlongRoute(route) {
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    const query = `
+    // Clear existing markers
+    hazardMarkers.forEach(marker => marker.setMap(null));
+    hazardMarkers = [];
+    hazards = [];
+    routeHazards = [];
+
+    // Get the route path for distance checking
+    const routePath = route.overview_path;
+
+    // Fetch from both OSM and Firestore in parallel
+    const osmQuery = `
     [out:json][timeout:25];
     (
       node["traffic_calming"](${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()});
@@ -353,43 +372,64 @@ async function fetchHazardsAlongRoute(route) {
   `;
 
     try {
-        const response = await fetch(OVERPASS_API_URL, {
+        // Fetch OSM hazards
+        const osmPromise = fetch(OVERPASS_API_URL, {
             method: 'POST',
-            body: `data=${encodeURIComponent(query)}`,
+            body: `data=${encodeURIComponent(osmQuery)}`,
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
-        });
+        }).then(res => res.ok ? res.json() : { elements: [] })
+            .catch(() => ({ elements: [] }));
 
-        if (!response.ok) {
-            throw new Error('Overpass API request failed');
-        }
+        // Fetch crowdsourced hazards from Firestore
+        const firestoreBounds = {
+            north: ne.lat(),
+            south: sw.lat(),
+            east: ne.lng(),
+            west: sw.lng()
+        };
+        const crowdsourcedPromise = fetchCrowdsourcedHazards(firestoreBounds);
 
-        const data = await response.json();
+        const [osmData, crowdsourcedData] = await Promise.all([osmPromise, crowdsourcedPromise]);
 
-        // Clear existing markers
-        hazardMarkers.forEach(marker => marker.setMap(null));
-        hazardMarkers = [];
-        hazards = [];
-        routeHazards = [];
-
-        // Get the route path for distance checking
-        const routePath = route.overview_path;
-
-        // Process hazard data
-        data.elements.forEach(element => {
+        // Process OSM hazard data
+        osmData.elements.forEach(element => {
             const hazardPos = { lat: element.lat, lng: element.lon };
-
-            // Check if hazard is near the route (within 50 meters)
             const isNearRoute = isPointNearPath(hazardPos, routePath, 50);
 
             const hazard = {
-                id: element.id,
+                id: `osm_${element.id}`,
                 lat: element.lat,
                 lng: element.lon,
                 type: element.tags.traffic_calming || 'unknown',
                 name: element.tags.name || null,
-                onRoute: isNearRoute
+                onRoute: isNearRoute,
+                source: 'osm'
+            };
+
+            hazards.push(hazard);
+            if (isNearRoute) {
+                routeHazards.push(hazard);
+            }
+            createHazardMarker(hazard);
+        });
+
+        // Process crowdsourced hazards from Firestore
+        crowdsourcedData.forEach(csHazard => {
+            const hazardPos = { lat: csHazard.lat, lng: csHazard.lng };
+            const isNearRoute = isPointNearPath(hazardPos, routePath, 50);
+
+            const hazard = {
+                id: `cs_${csHazard.id}`,
+                lat: csHazard.lat,
+                lng: csHazard.lng,
+                type: csHazard.type || 'unknown',
+                name: null,
+                onRoute: isNearRoute,
+                source: 'crowdsourced',
+                verified: csHazard.verified,
+                verificationCount: csHazard.verificationCount
             };
 
             hazards.push(hazard);
@@ -400,8 +440,10 @@ async function fetchHazardsAlongRoute(route) {
         });
 
         // Update hazard count
+        const osmCount = osmData.elements.length;
+        const csCount = crowdsourcedData.length;
         hazardCount.textContent = `${routeHazards.length} hazards on route`;
-        console.log(`Found ${routeHazards.length} hazards on route out of ${hazards.length} total`);
+        console.log(`Found ${routeHazards.length} hazards on route (${osmCount} OSM, ${csCount} crowdsourced)`);
 
     } catch (error) {
         console.error('Error fetching hazards along route:', error);
@@ -475,6 +517,9 @@ function startNavigation() {
     startNavBtn.innerHTML = '<span class="btn-icon">●</span> Navigating...';
     startNavBtn.disabled = true;
 
+    // Start accelerometer tracking for jolt detection
+    startAccelerometerTracking();
+
     console.log('Navigation started');
 }
 
@@ -488,6 +533,9 @@ function endNavigation() {
 
     // Clear speed history
     speedHistory = [];
+
+    // Stop accelerometer tracking
+    stopAccelerometerTracking();
 
     // Check for pending reports
     if (pendingReports.length > 0) {
@@ -699,14 +747,31 @@ function createHazardMarker(hazard) {
         raised_crosswalk: '#feca57',
         cushion: '#ff9f43',
         rumble_strip: '#a55eea',
+        pothole: '#e74c3c',
+        crossing: '#3498db',
+        turn: '#9b59b6',
+        traffic: '#f39c12',
         default: '#a55eea'
     };
 
-    const color = markerColors[hazard.type] || markerColors.default;
+    // Use teal/cyan for crowdsourced hazards to make them stand out
+    let color;
+    if (hazard.source === 'crowdsourced') {
+        color = '#00bcd4'; // Cyan for crowdsourced
+    } else {
+        color = markerColors[hazard.type] || markerColors.default;
+    }
+
     const label = getHazardLabel(hazard.type);
 
-    // Make on-route hazards larger
-    const scale = hazard.onRoute ? 12 : 8;
+    // Make on-route hazards larger, crowdsourced slightly different
+    let scale = hazard.onRoute ? 12 : 8;
+    if (hazard.source === 'crowdsourced' && hazard.onRoute) {
+        scale = 14; // Make crowdsourced on-route hazards even more prominent
+    }
+
+    // Different stroke color for crowdsourced
+    const strokeColor = hazard.source === 'crowdsourced' ? '#004d40' : '#ffffff';
 
     const marker = new google.maps.Marker({
         position: { lat: hazard.lat, lng: hazard.lng },
@@ -716,23 +781,36 @@ function createHazardMarker(hazard) {
             scale: scale,
             fillColor: color,
             fillOpacity: hazard.onRoute ? 1 : 0.7,
-            strokeColor: '#ffffff',
+            strokeColor: strokeColor,
             strokeWeight: hazard.onRoute ? 3 : 2
         },
         title: label,
         zIndex: hazard.onRoute ? 100 : 10
     });
 
-    // Info window
-    const infoWindow = new google.maps.InfoWindow({
-        content: `
+    // Build info window content
+    let infoContent = `
       <div class="info-window">
         <h3>${label}</h3>
         <p>Type: ${hazard.type}</p>
         ${hazard.name ? `<p>Name: ${hazard.name}</p>` : ''}
         ${hazard.onRoute ? '<p style="color: #ea4335; font-weight: bold;">⚠️ On your route</p>' : ''}
-      </div>
-    `
+    `;
+
+    // Add source info
+    if (hazard.source === 'crowdsourced') {
+        infoContent += `<p style="color: #00bcd4; font-size: 11px;">📱 Crowdsourced report</p>`;
+        if (hazard.verified) {
+            infoContent += `<p style="color: #4caf50; font-size: 11px;">✓ Verified (${hazard.verificationCount || 0} confirmations)</p>`;
+        }
+    } else {
+        infoContent += `<p style="color: #9e9e9e; font-size: 11px;">🗺️ OpenStreetMap data</p>`;
+    }
+
+    infoContent += `</div>`;
+
+    const infoWindow = new google.maps.InfoWindow({
+        content: infoContent
     });
 
     marker.addListener('click', () => {
@@ -980,28 +1058,32 @@ function showHazardReportModal() {
 function hideHazardReportModal() {
     hazardReportModal.classList.add('hidden');
     currentDecelEvent = null;
+    currentJoltEvent = null;
 }
 
 function handleHazardReport(hazardType) {
-    if (!currentDecelEvent) return;
+    // Handle either deceleration or jolt events
+    const activeEvent = currentDecelEvent || currentJoltEvent;
+    if (!activeEvent) return;
 
-    currentDecelEvent.hazardType = hazardType;
-    saveHazardReport(currentDecelEvent);
+    activeEvent.hazardType = hazardType;
+    saveHazardReport(activeEvent);
 
-    console.log('Hazard reported:', hazardType, currentDecelEvent);
+    console.log('Hazard reported:', hazardType, activeEvent);
     hideHazardReportModal();
 
     // If user selected 'other', add to pending for later clarification
     if (hazardType === 'other') {
-        pendingReports.push({ ...currentDecelEvent });
+        pendingReports.push({ ...activeEvent });
     }
 }
 
 function skipHazardReport() {
-    if (currentDecelEvent) {
+    const activeEvent = currentDecelEvent || currentJoltEvent;
+    if (activeEvent) {
         // Add to pending reports for later
-        currentDecelEvent.hazardType = 'skipped';
-        pendingReports.push(currentDecelEvent);
+        activeEvent.hazardType = 'skipped';
+        pendingReports.push(activeEvent);
         console.log('Report skipped, added to pending');
     }
     hideHazardReportModal();
@@ -1132,6 +1214,193 @@ function getHazardTypeLabel(type) {
         'skipped': 'Skipped'
     };
     return labels[type] || 'Unknown';
+}
+
+// ===== Vertical Jolt Detection (Accelerometer) =====
+
+/**
+ * Request permission for device motion sensors (required on iOS 13+)
+ */
+async function requestMotionPermission() {
+    // Check if DeviceMotionEvent.requestPermission exists (iOS 13+)
+    if (typeof DeviceMotionEvent !== 'undefined' &&
+        typeof DeviceMotionEvent.requestPermission === 'function') {
+        try {
+            const permission = await DeviceMotionEvent.requestPermission();
+            if (permission === 'granted') {
+                motionPermissionGranted = true;
+                console.log('Motion sensor permission granted');
+                return true;
+            } else {
+                console.warn('Motion sensor permission denied');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error requesting motion permission:', error);
+            return false;
+        }
+    } else {
+        // Non-iOS devices auto-grant permission
+        motionPermissionGranted = true;
+        console.log('Motion sensors available (no permission needed)');
+        return true;
+    }
+}
+
+/**
+ * Handle device motion events for jolt detection
+ */
+function handleDeviceMotion(event) {
+    if (!navigationActive || !accelerometerActive) return;
+
+    const acceleration = event.accelerationIncludingGravity;
+    if (!acceleration || acceleration.z === null) return;
+
+    // Calculate the deviation from normal gravity (~9.81 m/s²)
+    // When at rest, z should be around ±9.81 depending on phone orientation
+    // A jolt causes a sudden spike above or below this baseline
+    const zAcceleration = acceleration.z;
+    const gForce = Math.abs(zAcceleration) / 9.81;
+
+    // Get current speed from display
+    const currentSpeed = parseFloat(speedValue.textContent) || 0;
+
+    // Filter: must be above minimum speed and exceed threshold
+    // The threshold checks for acceleration significantly above 1g (normal gravity)
+    if (currentSpeed >= JOLT_MIN_SPEED && gForce > JOLT_THRESHOLD) {
+        const now = Date.now();
+
+        // Apply cooldown to prevent multiple triggers from same bump
+        if (now - lastJoltTime > JOLT_COOLDOWN) {
+            lastJoltTime = now;
+            triggerJoltDetection(gForce, currentSpeed);
+        }
+    }
+}
+
+/**
+ * Trigger jolt detection - creates event and shows modal
+ */
+function triggerJoltDetection(gForce, speed) {
+    console.log(`🔶 Jolt detected! g-force: ${gForce.toFixed(2)}g, speed: ${speed.toFixed(1)} km/h`);
+
+    // Visual feedback
+    flashOverlay.classList.add('active');
+    setTimeout(() => flashOverlay.classList.remove('active'), 200);
+
+    // Play a short haptic-like sound
+    playJoltSound();
+
+    // Create jolt event
+    const joltEvent = {
+        id: Date.now(),
+        detectionMethod: 'accelerometer',
+        lat: userPosition?.lat || 0,
+        lng: userPosition?.lng || 0,
+        timestamp: Date.now(),
+        speedAtDetection: speed,
+        zForceMax: gForce,
+        hazardType: null // To be filled by user
+    };
+
+    // If speed is low (user likely slowed for bump), show immediate modal
+    if (speed < LOW_SPEED_THRESHOLD) {
+        currentJoltEvent = joltEvent;
+        showHazardReportModal();
+    } else {
+        // Add to pending reports for later classification
+        joltEvent.hazardType = 'unknown';
+        pendingReports.push(joltEvent);
+        console.log('Jolt added to pending reports (high speed)', pendingReports.length);
+    }
+}
+
+/**
+ * Play a subtle jolt detection sound
+ */
+function playJoltSound() {
+    try {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        // Quick pop sound
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.1);
+
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.15);
+    } catch (error) {
+        console.error('Error playing jolt sound:', error);
+    }
+}
+
+/**
+ * Start accelerometer tracking for jolt detection
+ */
+async function startAccelerometerTracking() {
+    if (accelerometerActive) return;
+
+    // Request permission if needed (iOS)
+    if (!motionPermissionGranted) {
+        const granted = await requestMotionPermission();
+        if (!granted) {
+            console.warn('Could not start accelerometer - permission not granted');
+            return;
+        }
+    }
+
+    // Check if DeviceMotionEvent is supported
+    if (typeof DeviceMotionEvent === 'undefined') {
+        console.warn('DeviceMotionEvent not supported on this device');
+        return;
+    }
+
+    window.addEventListener('devicemotion', handleDeviceMotion);
+    accelerometerActive = true;
+    console.log('🔶 Accelerometer tracking started');
+}
+
+/**
+ * Stop accelerometer tracking
+ */
+function stopAccelerometerTracking() {
+    if (!accelerometerActive) return;
+
+    window.removeEventListener('devicemotion', handleDeviceMotion);
+    accelerometerActive = false;
+    lastJoltTime = 0;
+    console.log('🔶 Accelerometer tracking stopped');
+}
+
+/**
+ * Simulate a jolt event for testing purposes
+ */
+function simulateJolt() {
+    if (!navigationActive) {
+        console.log('Cannot simulate jolt - navigation not active');
+        return;
+    }
+
+    const fakeGForce = 2.0 + Math.random() * 0.5; // Random g-force between 2.0 and 2.5
+    const currentSpeed = parseFloat(speedValue.textContent) || 30;
+
+    console.log(`[TEST] Simulating jolt with g-force: ${fakeGForce.toFixed(2)}g`);
+    triggerJoltDetection(fakeGForce, currentSpeed);
 }
 
 // ===== Mode Toggle =====
@@ -1500,6 +1769,12 @@ simulateModeBtn.addEventListener('click', switchToSimulateMode);
 startSimBtn.addEventListener('click', startEnhancedSimulation);
 pauseSimBtn.addEventListener('click', pauseEnhancedSimulation);
 stopSimBtn.addEventListener('click', stopEnhancedSimulation);
+
+// Simulate Jolt Button
+const simJoltBtn = document.getElementById('sim-jolt-btn');
+if (simJoltBtn) {
+    simJoltBtn.addEventListener('click', simulateJolt);
+}
 
 // Speed Slider
 simSpeedInput.addEventListener('input', (e) => {

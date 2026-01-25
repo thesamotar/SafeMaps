@@ -626,6 +626,16 @@ body {
   background: var(--danger);
 }
 
+.sim-btn.jolt {
+  background: linear-gradient(135deg, #ff9f43, #f39c12);
+  color: var(--dark);
+}
+
+.sim-btn.jolt:hover {
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+  transform: translateY(-1px);
+}
+
 /* Simulation Progress */
 .sim-progress {
   margin-top: 15px;
