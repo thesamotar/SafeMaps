@@ -281,6 +281,22 @@ SafeMaps/
 
 ---
 
+### v1.5.1 — Improved Pending Reports UX
+
+**Commit:** `097130f`  
+**Date:** January 25, 2026
+
+#### Changes Made:
+- ✅ Replaced batch pending reports modal with sequential one-by-one review
+- ✅ Map zooms to each pending report location during review
+- ✅ Bouncing orange marker shows exact hazard location
+- ✅ Compact popup positioned at bottom-right corner (map visible)
+- ✅ Progress counter shows "Location 1/3: What was here?"
+- ✅ Immediate save after each classification
+- ✅ Skip option moves to next without saving
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
