@@ -297,6 +297,22 @@ SafeMaps/
 
 ---
 
+### v1.6.0 — Night/Day Mode Toggle & Testing Panel
+
+**Commit:** `75320c4`  
+**Date:** February 1, 2026
+
+#### Changes Made:
+- ✅ Added theme toggle button (🌙/☀️) in panel header
+- ✅ Light theme with inverted colors for UI panels
+- ✅ Google Maps styling switches between dark and default themes
+- ✅ Theme preference persisted to localStorage
+- ✅ Smooth CSS transitions between themes
+- ✅ Moved simulation controls to collapsible testing panel (bottom-right corner)
+- ✅ Testing panel starts collapsed by default (for cleaner production UI)
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
@@ -309,7 +325,7 @@ SafeMaps/
 - [x] ~~Add crowdsourced hazard sharing~~ ✅ Done in v1.4.0
 - [x] ~~Add accelerometer-based bump detection~~ ✅ Done in v1.5.0
 - [ ] Add voice-based hazard reporting
-- [ ] Add night/day mode toggle
+- [x] ~~Add night/day mode toggle~~ ✅ Done in v1.6.0
 - [ ] Add alternate route suggestions
 
 ---
