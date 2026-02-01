@@ -14,6 +14,43 @@
   --glass-border: rgba(255, 255, 255, 0.1);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --font-family: 'Segoe UI', 'Roboto', sans-serif;
+  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ===== Light Theme Variables ===== */
+[data-theme="light"] {
+  --dark: #f8f9fa;
+  --dark-secondary: #e9ecef;
+  --dark-tertiary: #dee2e6;
+  --light: #212529;
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* ===== Theme Toggle Button ===== */
+.theme-toggle-btn {
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dark-tertiary);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: var(--theme-transition), transform 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--primary);
+  transform: scale(1.05);
+}
+
+.theme-toggle-btn:active {
+  transform: scale(0.95);
 }
 
 /* ===== Reset & Base ===== */
@@ -696,6 +733,111 @@ body {
 .mode-indicator.simulate {
   background: rgba(26, 115, 232, 0.2);
   color: var(--primary);
+}
+
+/* ===== Testing Panel (Collapsible) ===== */
+.testing-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 999;
+  color: var(--light);
+  overflow: hidden;
+  transition: var(--theme-transition);
+}
+
+.testing-panel-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--light);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.testing-panel-toggle:hover {
+  background: var(--dark-secondary);
+}
+
+.testing-panel-label {
+  flex: 1;
+  text-align: left;
+}
+
+.chevron {
+  font-size: 10px;
+  transition: transform 0.3s ease;
+}
+
+.testing-panel.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.testing-panel.collapsed .testing-panel-toggle {
+  border-bottom: none;
+}
+
+.testing-panel-content {
+  padding: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+}
+
+.testing-panel.collapsed .testing-panel-content {
+  max-height: 0;
+  padding: 0 15px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.testing-panel-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.testing-panel-content::-webkit-scrollbar-thumb {
+  background: var(--dark-tertiary);
+  border-radius: 2px;
+}
+
+/* Update mode toggle section for testing panel */
+.testing-panel .mode-toggle-section {
+  margin-bottom: 12px;
+}
+
+.testing-panel .simulation-controls {
+  margin-bottom: 0;
+}
+
+/* Fix button layout in testing panel */
+.testing-panel .sim-actions {
+  flex-wrap: wrap;
+}
+
+.testing-panel .sim-btn {
+  flex: 1 1 calc(50% - 5px);
+  min-width: 100px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.testing-panel .sim-btn.jolt {
+  flex: 1 1 100%;
+  margin-top: 5px;
 }
 
 /* ===== Navigation HUD ===== */

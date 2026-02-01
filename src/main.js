@@ -39,6 +39,9 @@ let simulationPath = [];
 let simulationInterval = null;
 let simulationStartPosition = null;
 
+// ===== Theme State =====
+let currentTheme = localStorage.getItem('theme') || 'dark';
+
 // ===== Deceleration Detection State =====
 const DECEL_THRESHOLD = 15; // km/h drop to trigger detection
 const LOW_SPEED_THRESHOLD = 20; // km/h - if speed below this, show immediate popup
@@ -109,6 +112,26 @@ const pendingReportsModal = document.getElementById('pending-reports-modal');
 const pendingReportsList = document.getElementById('pending-reports-list');
 const submitPendingBtn = document.getElementById('submit-pending-btn');
 const dismissPendingBtn = document.getElementById('dismiss-pending-btn');
+
+// Theme Toggle DOM Elements
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+const themeIcon = document.getElementById('theme-icon');
+
+// Testing Panel DOM Elements
+const testingPanel = document.getElementById('testing-panel');
+const testingPanelToggle = document.getElementById('testing-panel-toggle');
+
+// ===== Testing Panel Collapse Toggle =====
+function toggleTestingPanel() {
+    if (testingPanel) {
+        testingPanel.classList.toggle('collapsed');
+    }
+}
+
+// Initialize testing panel as collapsed by default
+if (testingPanel) {
+    testingPanel.classList.add('collapsed');
+}
 
 // ===== Google Maps Loader =====
 async function loadGoogleMapsAPI() {
@@ -1682,6 +1705,50 @@ function restartSimulationInterval() {
     simulationInterval = setInterval(runEnhancedSimulationStep, intervalMs);
 }
 
+/**
+ * Animate marker smoothly between two positions
+ * Uses requestAnimationFrame for 60fps smooth animation
+ */
+let animationFrameId = null;
+
+function animateMarkerTo(fromPos, toPos, onComplete) {
+    // Cancel any existing animation
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+    }
+
+    const duration = 150; // Animation duration in ms (adjust for smoothness)
+    const startTime = performance.now();
+
+    function animate(currentTime) {
+        if (!simulationActive || simulationPaused) {
+            return;
+        }
+
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Ease-out cubic for smooth deceleration
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+        // Interpolate position
+        const currentLat = fromPos.lat + (toPos.lat - fromPos.lat) * easeProgress;
+        const currentLng = fromPos.lng + (toPos.lng - fromPos.lng) * easeProgress;
+
+        // Update marker position
+        userMarker.setPosition({ lat: currentLat, lng: currentLng });
+
+        if (progress < 1) {
+            animationFrameId = requestAnimationFrame(animate);
+        } else {
+            animationFrameId = null;
+            if (onComplete) onComplete();
+        }
+    }
+
+    animationFrameId = requestAnimationFrame(animate);
+}
+
 function runEnhancedSimulationStep() {
     if (!simulationActive || simulationPaused || simulationIndex >= simulationPath.length) {
         if (simulationIndex >= simulationPath.length) {
@@ -1692,17 +1759,19 @@ function runEnhancedSimulationStep() {
         return;
     }
 
-    const position = simulationPath[simulationIndex];
-    const now = Date.now();
+    const currentPosition = simulationPath[simulationIndex];
+    const nextIndex = Math.min(simulationIndex + 1, simulationPath.length - 1);
+    const nextPosition = simulationPath[nextIndex];
 
-    // Update marker position
-    userMarker.setPosition(position);
-    userPosition = position;
+    // Animate smoothly between current and next position
+    animateMarkerTo(currentPosition, nextPosition, () => {
+        userPosition = nextPosition;
 
-    // Pan map to follow (but not too aggressively)
-    if (simulationIndex % 3 === 0) {
-        map.panTo(position);
-    }
+        // Pan map to follow (but not too aggressively)
+        if (simulationIndex % 3 === 0) {
+            map.panTo(nextPosition);
+        }
+    });
 
     // Display the configured simulation speed with small variation
     const displaySpeed = simulationSpeed + Math.round((Math.random() - 0.5) * 4);
@@ -1710,12 +1779,13 @@ function runEnhancedSimulationStep() {
     speedValue.textContent = effectiveSpeed;
 
     // ===== Deceleration Detection for Simulation =====
+    const now = Date.now();
     if (navigationActive) {
         // Add to speed history
         speedHistory.push({
             speed: effectiveSpeed,
             timestamp: now,
-            position: { ...position }
+            position: { ...nextPosition }
         });
 
         // Keep only recent readings
@@ -1735,8 +1805,8 @@ function runEnhancedSimulationStep() {
                 // Create deceleration event
                 const decelEvent = {
                     id: Date.now(),
-                    lat: position.lat,
-                    lng: position.lng,
+                    lat: nextPosition.lat,
+                    lng: nextPosition.lng,
                     timestamp: now,
                     speedBefore: previousReading.speed,
                     speedAfter: effectiveSpeed,
@@ -1758,7 +1828,7 @@ function runEnhancedSimulationStep() {
 
     // Check hazards
     const hazardsToCheck = navigationActive ? routeHazards : hazards;
-    checkNearbyHazards(position, hazardsToCheck);
+    checkNearbyHazards(nextPosition, hazardsToCheck);
 
     // Update navigation HUD if active
     if (navigationActive) {
@@ -1819,7 +1889,13 @@ function debounce(func, wait) {
     };
 }
 
-function getMapStyles() {
+function getMapStyles(theme = currentTheme) {
+    // Light theme uses default Google Maps styling
+    if (theme === 'light') {
+        return [];
+    }
+
+    // Dark theme styling
     return [
         {
             featureType: 'all',
@@ -1884,7 +1960,43 @@ function getMapStyles() {
     ];
 }
 
+// ===== Theme Toggle Functions =====
+function applyTheme(theme) {
+    currentTheme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+
+    // Update toggle button icon
+    if (themeIcon) {
+        themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+    }
+
+    // Update map styles if map is initialized
+    if (map) {
+        map.setOptions({ styles: getMapStyles(theme) });
+    }
+}
+
+function toggleTheme() {
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+    console.log(`Theme switched to ${newTheme} mode`);
+}
+
+// Apply saved theme on load (before map init)
+applyTheme(currentTheme);
+
 // ===== Event Listeners =====
+
+// Theme Toggle
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', toggleTheme);
+}
+
+// Testing Panel Toggle
+if (testingPanelToggle) {
+    testingPanelToggle.addEventListener('click', toggleTestingPanel);
+}
 
 // Mode Toggle
 normalModeBtn.addEventListener('click', switchToNormalMode);
