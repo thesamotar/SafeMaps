@@ -313,12 +313,26 @@ SafeMaps/
 
 ---
 
+### v1.7.0 — Voice Alerts
+
+**Date:** February 2, 2026
+
+#### Changes Made:
+- ✅ Added voice alerts using Web Speech API (SpeechSynthesis)
+- ✅ Voice announces hazard type and distance (e.g., "Speed Bump ahead in 60 meters")
+- ✅ Added voice toggle button (🔊/🔇) in panel header
+- ✅ Voice alert cooldown (5 seconds) prevents repeated alerts for same hazard
+- ✅ Voice preference persisted to localStorage (enabled by default)
+- ✅ Confirmation speech when voice alerts are enabled
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
 - [x] ~~Implement route planning with hazard warnings~~ ✅ Done in v1.1.0
 - [x] ~~Add simulation with speed control~~ ✅ Done in v1.2.0
-- [ ] Add voice alerts using Web Speech API
+- [x] ~~Add voice alerts using Web Speech API~~ ✅ Done in v1.7.0
 - [ ] Store user preferences in localStorage
 - [ ] Add offline support with service workers
 - [x] ~~Implement hazard reporting feature~~ ✅ Done in v1.3.0

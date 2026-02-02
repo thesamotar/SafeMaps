@@ -53,6 +53,39 @@
   transform: scale(0.95);
 }
 
+/* ===== Voice Toggle Button ===== */
+#voice-toggle-btn {
+  position: static;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dark-tertiary);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: var(--theme-transition), transform 0.2s ease;
+}
+
+#voice-toggle-btn:hover {
+  background: var(--primary);
+  transform: scale(1.05);
+}
+
+#voice-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+#voice-toggle-btn.muted {
+  opacity: 0.6;
+}
+
+#voice-toggle-btn.muted:hover {
+  opacity: 1;
+}
+
 /* ===== Reset & Base ===== */
 * {
   margin: 0;

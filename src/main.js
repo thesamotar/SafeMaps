@@ -60,6 +60,14 @@ let lastJoltTime = 0;
 let motionPermissionGranted = false;
 let currentJoltEvent = null;       // Current jolt event awaiting classification
 
+// ===== Voice Alert Configuration =====
+const VOICE_ALERT_COOLDOWN = 5000;      // ms - prevent repeated alerts for same hazard
+let voiceAlertsEnabled = localStorage.getItem('voiceAlerts') !== 'false'; // default ON
+let voiceVolume = parseFloat(localStorage.getItem('voiceVolume')) || 1.0;
+let lastVoiceAlertTime = 0;
+let lastVoiceAlertHazardId = null;
+let speechSynthesis = window.speechSynthesis;
+
 // ===== Sequential Pending Reports Review State =====
 let pendingReviewIndex = 0;
 let pendingReviewMarker = null;
@@ -116,6 +124,10 @@ const dismissPendingBtn = document.getElementById('dismiss-pending-btn');
 // Theme Toggle DOM Elements
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
 const themeIcon = document.getElementById('theme-icon');
+
+// Voice Toggle DOM Elements
+const voiceToggleBtn = document.getElementById('voice-toggle-btn');
+const voiceIcon = document.getElementById('voice-icon');
 
 // Testing Panel DOM Elements
 const testingPanel = document.getElementById('testing-panel');
@@ -1009,6 +1021,19 @@ function checkNearbyHazards(position, hazardList = hazards) {
 
 // ===== Alert System =====
 function triggerAlert(hazard, distance) {
+    // Voice alert with cooldown (prevent spam for same hazard)
+    const now = Date.now();
+    const hazardId = hazard.id || `${hazard.lat}_${hazard.lng}`;
+
+    if (voiceAlertsEnabled && speechSynthesis &&
+        (now - lastVoiceAlertTime > VOICE_ALERT_COOLDOWN || lastVoiceAlertHazardId !== hazardId)) {
+        const hazardLabel = getHazardLabel(hazard.type);
+        const distanceRounded = Math.round(distance);
+        speakAlert(`${hazardLabel} ahead in ${distanceRounded} meters`);
+        lastVoiceAlertTime = now;
+        lastVoiceAlertHazardId = hazardId;
+    }
+
     // Update UI
     alertStatus.className = 'alert-status danger';
     alertStatus.innerHTML = `
@@ -1074,6 +1099,33 @@ function playWarningSound() {
 
     } catch (error) {
         console.error('Error playing warning sound:', error);
+    }
+}
+
+// ===== Voice Alert using Web Speech API =====
+function speakAlert(message) {
+    if (!voiceAlertsEnabled || !speechSynthesis) return;
+
+    try {
+        // Cancel any ongoing speech
+        speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.rate = 1.0;           // Speech rate
+        utterance.pitch = 1.0;          // Voice pitch
+        utterance.volume = voiceVolume;  // Volume (0-1)
+
+        // Prefer English voice if available
+        const voices = speechSynthesis.getVoices();
+        const englishVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+        if (englishVoice) {
+            utterance.voice = englishVoice;
+        }
+
+        speechSynthesis.speak(utterance);
+        console.log('Voice alert:', message);
+    } catch (error) {
+        console.error('Error speaking alert:', error);
     }
 }
 
@@ -1986,11 +2038,47 @@ function toggleTheme() {
 // Apply saved theme on load (before map init)
 applyTheme(currentTheme);
 
+// ===== Voice Alert Toggle Functions =====
+function toggleVoiceAlerts() {
+    voiceAlertsEnabled = !voiceAlertsEnabled;
+    localStorage.setItem('voiceAlerts', voiceAlertsEnabled);
+    updateVoiceToggleUI();
+
+    // Speak confirmation when enabling
+    if (voiceAlertsEnabled) {
+        // Small delay to ensure UI updates first
+        setTimeout(() => speakAlert("Voice alerts enabled"), 100);
+    }
+    console.log(`Voice alerts ${voiceAlertsEnabled ? 'enabled' : 'disabled'}`);
+}
+
+function updateVoiceToggleUI() {
+    if (voiceToggleBtn && voiceIcon) {
+        if (voiceAlertsEnabled) {
+            voiceIcon.textContent = '🔊';
+            voiceToggleBtn.classList.remove('muted');
+            voiceToggleBtn.title = 'Voice Alerts: ON';
+        } else {
+            voiceIcon.textContent = '🔇';
+            voiceToggleBtn.classList.add('muted');
+            voiceToggleBtn.title = 'Voice Alerts: OFF';
+        }
+    }
+}
+
+// Apply saved voice setting on load
+updateVoiceToggleUI();
+
 // ===== Event Listeners =====
 
 // Theme Toggle
 if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', toggleTheme);
+}
+
+// Voice Toggle
+if (voiceToggleBtn) {
+    voiceToggleBtn.addEventListener('click', toggleVoiceAlerts);
 }
 
 // Testing Panel Toggle
