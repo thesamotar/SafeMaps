@@ -315,6 +315,7 @@ SafeMaps/
 
 ### v1.7.0 — Voice Alerts
 
+**Commit:** `6032262`  
 **Date:** February 2, 2026
 
 #### Changes Made:
