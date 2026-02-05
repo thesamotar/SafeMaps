@@ -1145,6 +1145,89 @@ body {
   margin-bottom: 20px;
 }
 
+/* ===== Voice Input Section in Modal ===== */
+.voice-input-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.voice-record-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
+}
+
+.voice-record-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+}
+
+.voice-record-btn.listening {
+  background: linear-gradient(135deg, var(--danger), #c62828);
+  animation: pulse-listening 1s ease-in-out infinite;
+}
+
+@keyframes pulse-listening {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.voice-record-btn #voice-record-icon {
+  font-size: 32px;
+}
+
+.voice-record-btn .voice-label {
+  font-size: 10px;
+  color: white;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.voice-hint {
+  font-size: 11px;
+  color: #9aa0a6;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.modal-divider {
+  display: flex;
+  align-items: center;
+  margin: 15px 0;
+  color: #9aa0a6;
+  font-size: 12px;
+}
+
+.modal-divider::before,
+.modal-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--glass-border);
+}
+
+.modal-divider span {
+  padding: 0 12px;
+}
+
 .report-options {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

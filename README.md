@@ -328,6 +328,20 @@ SafeMaps/
 
 ---
 
+### v1.8.0 — Voice-Based Hazard Reporting
+
+**Date:** February 5, 2026
+
+#### Changes Made:
+- ✅ Added voice input for hazard reporting using Web Speech API (SpeechRecognition)
+- ✅ Microphone button in hazard report modal - tap to speak
+- ✅ Keyword recognition: "speed bump", "pothole", "crossing", "turn", "traffic", etc.
+- ✅ Visual feedback: button pulses red while listening
+- ✅ Audio confirmation: speaks back what was reported
+- ✅ Graceful fallback if speech not recognized or microphone denied
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
@@ -339,7 +353,7 @@ SafeMaps/
 - [x] ~~Implement hazard reporting feature~~ ✅ Done in v1.3.0
 - [x] ~~Add crowdsourced hazard sharing~~ ✅ Done in v1.4.0
 - [x] ~~Add accelerometer-based bump detection~~ ✅ Done in v1.5.0
-- [ ] Add voice-based hazard reporting
+- [x] ~~Add voice-based hazard reporting~~ ✅ Done in v1.8.0
 - [x] ~~Add night/day mode toggle~~ ✅ Done in v1.6.0
 - [ ] Add alternate route suggestions
 

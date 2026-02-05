@@ -204,6 +204,19 @@
   <div id="hazard-report-modal" class="report-modal hidden">
     <div class="modal-content">
       <h3 class="modal-title">🚧 What caused you to slow down?</h3>
+
+      <!-- Voice Input Section -->
+      <div class="voice-input-section">
+        <button id="voice-record-btn" class="voice-record-btn" title="Speak hazard type">
+          <span id="voice-record-icon">🎤</span>
+          <span class="voice-label">Tap to speak</span>
+        </button>
+        <p class="voice-hint">Say: "speed bump", "pothole", "crossing", etc.</p>
+      </div>
+      <div class="modal-divider">
+        <span>or tap below</span>
+      </div>
+
       <div class="report-options">
         <button class="report-option" data-type="speed_bump">
           <span class="option-icon">🔶</span>

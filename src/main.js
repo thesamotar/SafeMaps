@@ -68,6 +68,22 @@ let lastVoiceAlertTime = 0;
 let lastVoiceAlertHazardId = null;
 let speechSynthesis = window.speechSynthesis;
 
+// ===== Voice Recognition Configuration =====
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let speechRecognitionSupported = !!SpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+// Keyword mapping for hazard types
+const HAZARD_KEYWORDS = {
+    'speed_bump': ['speed bump', 'bump', 'hump', 'speed breaker', 'breaker'],
+    'pothole': ['pothole', 'pot hole', 'hole', 'crater'],
+    'crossing': ['crossing', 'crosswalk', 'pedestrian', 'zebra'],
+    'turn': ['turn', 'sharp turn', 'curve', 'bend'],
+    'traffic': ['traffic', 'congestion', 'jam', 'slow traffic'],
+    'other': ['other', 'something', 'unknown', 'else']
+};
+
 // ===== Sequential Pending Reports Review State =====
 let pendingReviewIndex = 0;
 let pendingReviewMarker = null;
@@ -1129,6 +1145,101 @@ function speakAlert(message) {
     }
 }
 
+// ===== Voice Recognition for Hazard Reporting =====
+function initVoiceRecognition() {
+    if (!speechRecognitionSupported) {
+        console.log('Speech recognition not supported in this browser');
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+        isListening = true;
+        updateVoiceRecordUI(true);
+        console.log('Voice recognition started');
+    };
+
+    recognition.onend = () => {
+        isListening = false;
+        updateVoiceRecordUI(false);
+        console.log('Voice recognition ended');
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase().trim();
+        console.log('Heard:', transcript);
+
+        const hazardType = matchHazardKeyword(transcript);
+        if (hazardType) {
+            speakAlert(`Reporting ${getHazardTypeLabel(hazardType)}`);
+            handleHazardReport(hazardType);
+        } else {
+            speakAlert("Sorry, I didn't understand. Please tap an option.");
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Voice recognition error:', event.error);
+        isListening = false;
+        updateVoiceRecordUI(false);
+
+        if (event.error === 'no-speech') {
+            speakAlert("I didn't hear anything. Please try again.");
+        } else if (event.error === 'not-allowed') {
+            speakAlert("Microphone access denied.");
+        }
+    };
+}
+
+function startVoiceRecognition() {
+    if (!speechRecognitionSupported || !recognition) {
+        speakAlert("Voice input not supported on this browser");
+        return;
+    }
+
+    if (isListening) {
+        recognition.stop();
+        return;
+    }
+
+    try {
+        recognition.start();
+    } catch (error) {
+        console.error('Error starting recognition:', error);
+    }
+}
+
+function matchHazardKeyword(transcript) {
+    for (const [hazardType, keywords] of Object.entries(HAZARD_KEYWORDS)) {
+        for (const keyword of keywords) {
+            if (transcript.includes(keyword)) {
+                return hazardType;
+            }
+        }
+    }
+    return null;
+}
+
+function updateVoiceRecordUI(listening) {
+    const micBtn = document.getElementById('voice-record-btn');
+    const micIcon = document.getElementById('voice-record-icon');
+    if (micBtn && micIcon) {
+        if (listening) {
+            micBtn.classList.add('listening');
+            micIcon.textContent = '🔴';
+            micBtn.title = 'Listening... (tap to cancel)';
+        } else {
+            micBtn.classList.remove('listening');
+            micIcon.textContent = '🎤';
+            micBtn.title = 'Speak hazard type';
+        }
+    }
+}
+
 // ===== Hazard Report Modal Functions =====
 function showHazardReportModal() {
     hazardReportModal.classList.remove('hidden');
@@ -2152,5 +2263,12 @@ document.addEventListener('click', () => {
     }
 }, { once: true });
 
+// Voice Record Button for hazard reporting
+const voiceRecordBtn = document.getElementById('voice-record-btn');
+if (voiceRecordBtn) {
+    voiceRecordBtn.addEventListener('click', startVoiceRecognition);
+}
+
 // ===== Initialize =====
+initVoiceRecognition();
 initMap();
