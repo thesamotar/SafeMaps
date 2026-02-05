@@ -330,6 +330,7 @@ SafeMaps/
 
 ### v1.8.0 — Voice-Based Hazard Reporting
 
+**Commit:** `d7ba643`  
 **Date:** February 5, 2026
 
 #### Changes Made:
