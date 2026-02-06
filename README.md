@@ -391,6 +391,17 @@ SafeMaps/
 
 ---
 
+### v2.0.1 — Marker Info Window UX Improvements
+
+**Commit:** `6d25817`  
+**Date:** February 6, 2026
+
+#### Changes Made:
+- ✅ Clicking anywhere on marker (background or icon) now opens info bubble
+- ✅ Only one info bubble can be open at a time (clicking new marker closes previous)
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
