@@ -343,6 +343,24 @@ SafeMaps/
 
 ---
 
+### v1.9.0 — Distinct Hazard Marker Icons
+
+**Commit:** `d341f1e`  
+**Date:** February 6, 2026
+
+#### Changes Made:
+- ✅ Added unique SVG icons for each hazard type (speed bumps, potholes, crossings, etc.)
+- ✅ Implemented two-layer marker design: colorful circular pin background + white icon inside
+- ✅ Added vibrant color schemes for each hazard type for instant visual identification
+- ✅ Speed bumps show wavy bump icon (red)
+- ✅ Potholes show star/crater icon (red)
+- ✅ Pedestrian crossings show walking figure icon (blue)
+- ✅ Traffic hazards show car silhouette (orange)
+- ✅ Turns show curved arrow (purple)
+- ✅ Crowdsourced hazards retain distinct cyan color
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
@@ -356,6 +374,7 @@ SafeMaps/
 - [x] ~~Add accelerometer-based bump detection~~ ✅ Done in v1.5.0
 - [x] ~~Add voice-based hazard reporting~~ ✅ Done in v1.8.0
 - [x] ~~Add night/day mode toggle~~ ✅ Done in v1.6.0
+- [x] ~~Add distinct marker icons for each hazard type~~ ✅ Done in v1.9.0
 - [ ] Add alternate route suggestions
 
 ---
