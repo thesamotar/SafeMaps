@@ -375,6 +375,22 @@ SafeMaps/
 
 ---
 
+### v2.0.0 — Alternate Routes with Hazard Comparison
+
+**Commit:** `654124c`  
+**Date:** February 6, 2026
+
+#### Changes Made:
+- ✅ Request alternate routes from Google Directions API (up to 3 options)
+- ✅ Calculate hazard count for each route before displaying
+- ✅ Display route option cards with distance, duration, and hazard count
+- ✅ Auto-select safest route (fewest hazards) by default
+- ✅ Color-coded hazard badges: green (0-2), yellow (3-5), red (6+)
+- ✅ Click to switch between routes, markers update accordingly
+- ✅ Added "Safest" tag to recommended route
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
@@ -389,7 +405,7 @@ SafeMaps/
 - [x] ~~Add voice-based hazard reporting~~ ✅ Done in v1.8.0
 - [x] ~~Add night/day mode toggle~~ ✅ Done in v1.6.0
 - [x] ~~Add distinct marker icons for each hazard type~~ ✅ Done in v1.9.0
-- [ ] Add alternate route suggestions
+- [x] ~~Add alternate route suggestions~~ ✅ Done in v2.0.0
 
 ---
 
