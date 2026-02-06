@@ -1101,6 +1101,10 @@ body {
   z-index: 1;
 }
 
+#map.loaded::before {
+  display: none;
+}
+
 /* ===== Hazard Report Modal ===== */
 .report-modal {
   position: fixed;

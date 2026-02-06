@@ -206,6 +206,9 @@ async function initMap() {
             }
         });
 
+        // Hide loading text
+        document.getElementById('map').classList.add('loaded');
+
         // Create user marker
         userMarker = new google.maps.Marker({
             position: userPosition,
@@ -449,57 +452,57 @@ async function fetchHazardsAlongRoute(route) {
 
         const [osmData, crowdsourcedData] = await Promise.all([osmPromise, crowdsourcedPromise]);
 
-        // Process OSM hazard data
+        // Process OSM hazard data - only add hazards that are ON the route
         osmData.elements.forEach(element => {
             const hazardPos = { lat: element.lat, lng: element.lon };
             const isNearRoute = isPointNearPath(hazardPos, routePath, 50);
 
-            const hazard = {
-                id: `osm_${element.id}`,
-                lat: element.lat,
-                lng: element.lon,
-                type: element.tags.traffic_calming || 'unknown',
-                name: element.tags.name || null,
-                onRoute: isNearRoute,
-                source: 'osm'
-            };
-
-            hazards.push(hazard);
+            // Only create markers for hazards that are on the route
             if (isNearRoute) {
+                const hazard = {
+                    id: `osm_${element.id}`,
+                    lat: element.lat,
+                    lng: element.lon,
+                    type: element.tags.traffic_calming || 'unknown',
+                    name: element.tags.name || null,
+                    onRoute: true,
+                    source: 'osm'
+                };
+
+                hazards.push(hazard);
                 routeHazards.push(hazard);
+                createHazardMarker(hazard);
             }
-            createHazardMarker(hazard);
         });
 
-        // Process crowdsourced hazards from Firestore
+        // Process crowdsourced hazards from Firestore - only add hazards that are ON the route
         crowdsourcedData.forEach(csHazard => {
             const hazardPos = { lat: csHazard.lat, lng: csHazard.lng };
             const isNearRoute = isPointNearPath(hazardPos, routePath, 50);
 
-            const hazard = {
-                id: `cs_${csHazard.id}`,
-                lat: csHazard.lat,
-                lng: csHazard.lng,
-                type: csHazard.type || 'unknown',
-                name: null,
-                onRoute: isNearRoute,
-                source: 'crowdsourced',
-                verified: csHazard.verified,
-                verificationCount: csHazard.verificationCount
-            };
-
-            hazards.push(hazard);
+            // Only create markers for hazards that are on the route
             if (isNearRoute) {
+                const hazard = {
+                    id: `cs_${csHazard.id}`,
+                    lat: csHazard.lat,
+                    lng: csHazard.lng,
+                    type: csHazard.type || 'unknown',
+                    name: null,
+                    onRoute: true,
+                    source: 'crowdsourced',
+                    verified: csHazard.verified,
+                    verificationCount: csHazard.verificationCount
+                };
+
+                hazards.push(hazard);
                 routeHazards.push(hazard);
+                createHazardMarker(hazard);
             }
-            createHazardMarker(hazard);
         });
 
         // Update hazard count
-        const osmCount = osmData.elements.length;
-        const csCount = crowdsourcedData.length;
         hazardCount.textContent = `${routeHazards.length} hazards on route`;
-        console.log(`Found ${routeHazards.length} hazards on route (${osmCount} OSM, ${csCount} crowdsourced)`);
+        console.log(`Found ${routeHazards.length} hazards on route`);
 
     } catch (error) {
         console.error('Error fetching hazards along route:', error);
@@ -689,9 +692,28 @@ function clearRoute() {
     delete endInput.dataset.lng;
     endPlace = null;
 
-    // Clear route hazards
+    // Clear all hazard markers from map
+    hazardMarkers.forEach(m => { m.background.setMap(null); m.icon.setMap(null); });
+    hazardMarkers = [];
+    hazards = [];
     routeHazards = [];
-    hazardCount.textContent = `${hazards.length} hazards loaded`;
+
+    // Center map on user's current location
+    if (userPosition) {
+        map.panTo(userPosition);
+        map.setZoom(16); // Reset to default zoom level
+    }
+
+    // Refetch hazards for current map bounds (return to initial state)
+    // Small delay to allow map to settle after pan
+    setTimeout(() => {
+        const bounds = map.getBounds();
+        if (bounds) {
+            fetchHazards(bounds);
+        }
+    }, 300);
+
+    console.log('Route cleared, map reset to initial state');
 }
 
 // ===== Use Current Location =====
