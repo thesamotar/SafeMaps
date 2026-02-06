@@ -17,6 +17,7 @@ let lastPosition = null;
 let lastTimestamp = null;
 let locationWatchId = null;
 let audioContext = null;
+let activeInfoWindow = null; // Track currently open info window (only one at a time)
 
 // Navigation State
 let directionsService = null;
@@ -1124,10 +1125,20 @@ function createHazardMarker(hazard) {
         content: infoContent
     });
 
-    // Add click listener to icon marker (the interactive one)
-    iconMarker.addListener('click', () => {
+    // Function to open info window (closes any existing one first)
+    const openInfoWindow = () => {
+        // Close any currently open info window
+        if (activeInfoWindow) {
+            activeInfoWindow.close();
+        }
+        // Open this info window and set as active
         infoWindow.open(map, iconMarker);
-    });
+        activeInfoWindow = infoWindow;
+    };
+
+    // Add click listener to BOTH markers (so clicking anywhere opens info)
+    backgroundMarker.addListener('click', openInfoWindow);
+    iconMarker.addListener('click', openInfoWindow);
 
     // Store both markers as an object for proper cleanup
     hazardMarkers.push({ background: backgroundMarker, icon: iconMarker });
