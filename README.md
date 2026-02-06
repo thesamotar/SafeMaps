@@ -361,6 +361,20 @@ SafeMaps/
 
 ---
 
+### v1.9.1 — Route Navigation UX Improvements
+
+**Commit:** `d8d9526`  
+**Date:** February 6, 2026
+
+#### Changes Made:
+- ✅ Clear Route now properly removes all hazard markers from map
+- ✅ Clear Route centers map back to user's current location
+- ✅ Fixed "Loading map..." text persisting after map loads
+- ✅ Hazard markers now only shown for hazards ON the route (not entire bounding box)
+- ✅ Map zoom resets to level 16 when clearing route
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] Add hazard type filtering in the UI
