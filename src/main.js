@@ -29,6 +29,10 @@ let currentRoute = null;
 let navigationActive = false;
 let routeHazards = [];
 
+// Alternate Routes State
+let allRoutes = []; // Array of route objects with hazard counts
+let selectedRouteIndex = 0; // Currently selected route index
+
 // Enhanced Simulation State
 let appMode = 'normal'; // 'normal' or 'simulate'
 let simulationActive = false;
@@ -106,6 +110,7 @@ const routeDistanceEl = document.getElementById('route-distance');
 const routeDurationEl = document.getElementById('route-duration');
 const startNavBtn = document.getElementById('start-nav-btn');
 const clearRouteBtn = document.getElementById('clear-route-btn');
+const routeOptionsEl = document.getElementById('route-options');
 const navHud = document.getElementById('nav-hud');
 const navStepDistance = document.getElementById('nav-step-distance');
 const navStepAction = document.getElementById('nav-step-action');
@@ -361,14 +366,15 @@ async function getRoute() {
     }
 
     getRouteBtn.disabled = true;
-    getRouteBtn.innerHTML = '<span class="btn-icon">⏳</span> Getting Route...';
+    getRouteBtn.innerHTML = '<span class="btn-icon">⏳</span> Getting Routes...';
 
     try {
         const result = await new Promise((resolve, reject) => {
             directionsService.route({
                 origin: origin,
                 destination: destination,
-                travelMode: google.maps.TravelMode.DRIVING
+                travelMode: google.maps.TravelMode.DRIVING,
+                provideRouteAlternatives: true // Request alternate routes
             }, (result, status) => {
                 if (status === 'OK') {
                     resolve(result);
@@ -378,24 +384,40 @@ async function getRoute() {
             });
         });
 
-        // Display the route
-        directionsRenderer.setDirections(result);
         currentRoute = result;
+        allRoutes = [];
 
-        // Get route info
-        const route = result.routes[0];
-        const leg = route.legs[0];
+        // Process all routes and count hazards for each
+        const routePromises = result.routes.map(async (route, index) => {
+            const hazardCount = await countHazardsOnRoute(route);
+            return {
+                index: index,
+                route: route,
+                leg: route.legs[0],
+                hazardCount: hazardCount
+            };
+        });
 
-        // Update UI
-        routeDistanceEl.textContent = leg.distance.text;
-        routeDurationEl.textContent = leg.duration.text;
+        allRoutes = await Promise.all(routePromises);
+        console.log(`Found ${allRoutes.length} route options`);
+
+        // Sort by hazard count (fewest first) to find safest route
+        const sortedByHazards = [...allRoutes].sort((a, b) => a.hazardCount - b.hazardCount);
+        const safestRouteIndex = sortedByHazards[0].index;
+
+        // Display route options UI
+        displayRouteOptions(allRoutes, safestRouteIndex);
+
+        // Set directions on renderer first (required before setRouteIndex)
+        directionsRenderer.setDirections(result);
+
+        // Select the safest route by default
+        await selectRoute(safestRouteIndex);
+
+        // Fit map to show all routes
+        map.fitBounds(result.routes[0].bounds);
+
         navInfo.classList.remove('hidden');
-
-        // Fetch hazards along the route
-        await fetchHazardsAlongRoute(route);
-
-        // Fit map to route bounds
-        map.fitBounds(route.bounds);
 
     } catch (error) {
         console.error('Error getting route:', error);
@@ -405,6 +427,137 @@ async function getRoute() {
         getRouteBtn.innerHTML = '<span class="btn-icon">🧭</span> Get Route';
     }
 }
+
+// ===== Count Hazards on Route (without creating markers) =====
+async function countHazardsOnRoute(route) {
+    const bounds = route.bounds;
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    const routePath = route.overview_path;
+
+    // Fetch from OSM
+    const osmQuery = `
+    [out:json][timeout:25];
+    (
+      node["traffic_calming"](${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()});
+    );
+    out body;
+  `;
+
+    try {
+        const osmPromise = fetch(OVERPASS_API_URL, {
+            method: 'POST',
+            body: `data=${encodeURIComponent(osmQuery)}`,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        }).then(res => res.ok ? res.json() : { elements: [] })
+            .catch(() => ({ elements: [] }));
+
+        // Fetch crowdsourced hazards
+        const firestoreBounds = {
+            north: ne.lat(),
+            south: sw.lat(),
+            east: ne.lng(),
+            west: sw.lng()
+        };
+        const crowdsourcedPromise = fetchCrowdsourcedHazards(firestoreBounds);
+
+        const [osmData, crowdsourcedData] = await Promise.all([osmPromise, crowdsourcedPromise]);
+
+        let count = 0;
+
+        // Count OSM hazards on route
+        osmData.elements.forEach(element => {
+            const hazardPos = { lat: element.lat, lng: element.lon };
+            if (isPointNearPath(hazardPos, routePath, 50)) {
+                count++;
+            }
+        });
+
+        // Count crowdsourced hazards on route
+        crowdsourcedData.forEach(csHazard => {
+            const hazardPos = { lat: csHazard.lat, lng: csHazard.lng };
+            if (isPointNearPath(hazardPos, routePath, 50)) {
+                count++;
+            }
+        });
+
+        return count;
+    } catch (error) {
+        console.error('Error counting hazards:', error);
+        return 0;
+    }
+}
+
+// ===== Display Route Options UI =====
+function displayRouteOptions(routes, recommendedIndex) {
+    if (routes.length <= 1) {
+        routeOptionsEl.classList.add('hidden');
+        return;
+    }
+
+    const labels = ['A', 'B', 'C', 'D', 'E'];
+
+    let html = '<div class="route-options-header">Choose Your Route</div>';
+
+    routes.forEach((routeData, i) => {
+        const isRecommended = i === recommendedIndex;
+        const hazardLevel = routeData.hazardCount <= 2 ? 'low' :
+            routeData.hazardCount <= 5 ? 'medium' : 'high';
+
+        html += `
+            <div class="route-card ${i === selectedRouteIndex ? 'selected' : ''}" 
+                 data-route-index="${i}" 
+                 onclick="window.selectRouteHandler(${i})">
+                <div class="route-label">${labels[i]}</div>
+                <div class="route-details">
+                    <div class="route-main-info">
+                        <span class="route-distance">${routeData.leg.distance.text}</span>
+                        <span class="route-duration">${routeData.leg.duration.text}</span>
+                    </div>
+                    <div class="route-hazard-info">
+                        <span class="hazard-badge ${hazardLevel}">
+                            ⚠️ ${routeData.hazardCount} hazard${routeData.hazardCount !== 1 ? 's' : ''}
+                        </span>
+                        ${isRecommended ? '<span class="recommended-tag">Safest</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    routeOptionsEl.innerHTML = html;
+    routeOptionsEl.classList.remove('hidden');
+}
+
+// ===== Select Route =====
+async function selectRoute(index) {
+    if (index < 0 || index >= allRoutes.length) return;
+
+    selectedRouteIndex = index;
+    const routeData = allRoutes[index];
+
+    // Update directions renderer to show selected route
+    directionsRenderer.setRouteIndex(index);
+
+    // Update nav stats
+    routeDistanceEl.textContent = routeData.leg.distance.text;
+    routeDurationEl.textContent = routeData.leg.duration.text;
+
+    // Update UI to highlight selected card
+    document.querySelectorAll('.route-card').forEach((card, i) => {
+        card.classList.toggle('selected', i === index);
+    });
+
+    // Fetch and display hazards for select route
+    await fetchHazardsAlongRoute(routeData.route);
+
+    console.log(`Selected route ${index}: ${routeData.leg.distance.text}, ${routeData.hazardCount} hazards`);
+}
+
+// Expose selectRoute to global scope for onclick handlers
+window.selectRouteHandler = selectRoute;
 
 // ===== Fetch Hazards Along Route =====
 async function fetchHazardsAlongRoute(route) {
@@ -685,6 +838,12 @@ function clearRoute() {
     currentRoute = null;
     navInfo.classList.add('hidden');
     endNavigation();
+
+    // Clear alternate routes state
+    allRoutes = [];
+    selectedRouteIndex = 0;
+    routeOptionsEl.innerHTML = '';
+    routeOptionsEl.classList.add('hidden');
 
     // Clear end input
     endInput.value = '';

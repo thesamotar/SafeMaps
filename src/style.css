@@ -333,6 +333,141 @@ body {
   margin-top: 4px;
 }
 
+/* ===== Route Options (Alternate Routes) ===== */
+.route-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.route-options.hidden {
+  display: none;
+}
+
+.route-options-header {
+  font-size: 12px;
+  color: #9aa0a6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.route-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--dark-secondary);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.route-card:hover {
+  background: var(--dark-tertiary);
+  border-color: var(--glass-border);
+}
+
+.route-card.selected {
+  background: rgba(26, 115, 232, 0.15);
+  border-color: var(--primary);
+}
+
+.route-label {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dark-tertiary);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #9aa0a6;
+}
+
+.route-card.selected .route-label {
+  background: var(--primary);
+  color: white;
+}
+
+.route-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.route-main-info {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--light);
+}
+
+.route-distance,
+.route-duration {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.route-distance::before {
+  content: '📍';
+  font-size: 12px;
+}
+
+.route-duration::before {
+  content: '⏱️';
+  font-size: 12px;
+}
+
+.route-hazard-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9aa0a6;
+}
+
+.hazard-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hazard-badge.low {
+  background: rgba(52, 168, 83, 0.2);
+  color: var(--success);
+}
+
+.hazard-badge.medium {
+  background: rgba(251, 188, 4, 0.2);
+  color: var(--warning);
+}
+
+.hazard-badge.high {
+  background: rgba(234, 67, 53, 0.2);
+  color: var(--danger);
+}
+
+.recommended-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(52, 168, 83, 0.2);
+  color: var(--success);
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
 .nav-actions {
   display: flex;
   gap: 10px;
