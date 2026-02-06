@@ -410,7 +410,7 @@ async function fetchHazardsAlongRoute(route) {
     const ne = bounds.getNorthEast();
 
     // Clear existing markers
-    hazardMarkers.forEach(marker => marker.setMap(null));
+    hazardMarkers.forEach(m => { m.background.setMap(null); m.icon.setMap(null); });
     hazardMarkers = [];
     hazards = [];
     routeHazards = [];
@@ -766,7 +766,7 @@ async function fetchHazards(bounds) {
         const data = await response.json();
 
         // Clear existing markers
-        hazardMarkers.forEach(marker => marker.setMap(null));
+        hazardMarkers.forEach(m => { m.background.setMap(null); m.icon.setMap(null); });
         hazardMarkers = [];
         hazards = [];
 
@@ -793,55 +793,129 @@ async function fetchHazards(bounds) {
     }
 }
 
+// ===== Hazard Marker Color Schemes =====
+// Vibrant color schemes for each hazard type: [background, icon fill, icon stroke]
+const HAZARD_COLOR_SCHEMES = {
+    bump: { bg: '#ff6b6b', icon: '#ffffff', stroke: '#c0392b' },
+    hump: { bg: '#ff6b6b', icon: '#ffffff', stroke: '#c0392b' },
+    speed_bump: { bg: '#ff6b6b', icon: '#ffffff', stroke: '#c0392b' },
+    table: { bg: '#f39c12', icon: '#ffffff', stroke: '#d68910' },
+    raised_crosswalk: { bg: '#f1c40f', icon: '#2c3e50', stroke: '#f39c12' },
+    cushion: { bg: '#e67e22', icon: '#ffffff', stroke: '#d35400' },
+    rumble_strip: { bg: '#9b59b6', icon: '#ffffff', stroke: '#8e44ad' },
+    pothole: { bg: '#e74c3c', icon: '#ffffff', stroke: '#c0392b' },
+    crossing: { bg: '#3498db', icon: '#ffffff', stroke: '#2980b9' },
+    turn: { bg: '#9b59b6', icon: '#ffffff', stroke: '#8e44ad' },
+    traffic: { bg: '#f39c12', icon: '#2c3e50', stroke: '#d68910' },
+    chicane: { bg: '#1abc9c', icon: '#ffffff', stroke: '#16a085' },
+    choker: { bg: '#e67e22', icon: '#ffffff', stroke: '#d35400' },
+    island: { bg: '#2ecc71', icon: '#ffffff', stroke: '#27ae60' },
+    crowdsourced: { bg: '#00bcd4', icon: '#ffffff', stroke: '#00838f' },
+    default: { bg: '#95a5a6', icon: '#ffffff', stroke: '#7f8c8d' }
+};
+
+// ===== Hazard Icon SVG Paths (scaled for 48x48 with icons centered inside circle) =====
+const HAZARD_ICONS = {
+    // Speed bump - wavy bump shape (centered in circle)
+    speed_bump: 'M 16,30 Q 20,22 24,30 Q 28,22 32,30',
+    bump: 'M 16,30 Q 20,22 24,30 Q 28,22 32,30',
+    hump: 'M 16,30 Q 20,22 24,30 Q 28,22 32,30',
+
+    // Speed table - flat top bump
+    table: 'M 16,32 L 18,24 L 30,24 L 32,32 Z',
+    raised_crosswalk: 'M 16,32 L 18,24 L 30,24 L 32,32 Z M 21,24 L 21,20 M 24,24 L 24,20 M 27,24 L 27,20',
+
+    // Cushion - triple bumps
+    cushion: 'M 16,28 Q 18,24 20,28 M 22,28 Q 24,24 26,28 M 28,28 Q 30,24 32,28',
+
+    // Rumble strip - zigzag pattern
+    rumble_strip: 'M 16,26 L 19,22 L 22,26 L 25,22 L 28,26 L 31,22 L 32,26',
+
+    // Pothole - star/crater shape
+    pothole: 'M 24,16 L 26,22 L 32,22 L 27,26 L 29,32 L 24,28 L 19,32 L 21,26 L 16,22 L 22,22 Z',
+
+    // Crossing - pedestrian figure
+    crossing: 'M 24,16 m -2,0 a 2,2 0 1,0 4,0 a 2,2 0 1,0 -4,0 M 24,20 L 24,27 M 20,23 L 28,23 M 24,27 L 21,33 M 24,27 L 27,33',
+
+    // Turn - curved arrow
+    turn: 'M 20,32 L 20,24 Q 20,20 24,20 Q 28,20 28,24 L 30,24 L 26,18 L 22,24 L 24,24 Q 24,22 24,24 L 24,32',
+
+    // Traffic - car silhouette
+    traffic: 'M 18,26 L 19,23 L 21,21 L 27,21 L 29,23 L 30,26 L 30,29 L 18,29 Z M 20,29 L 20,31 L 22,31 L 22,29 M 26,29 L 26,31 L 28,31 L 28,29',
+
+    // Chicane - S-curve
+    chicane: 'M 16,28 Q 20,28 20,24 Q 20,20 24,20 Q 28,20 28,24 Q 28,28 32,28',
+
+    // Choker - narrowing road
+    choker: 'M 16,18 L 22,24 L 16,30 M 32,18 L 26,24 L 32,30',
+
+    // Traffic Island - diamond shape
+    island: 'M 24,18 L 30,24 L 24,30 L 18,24 Z',
+
+    // Default - exclamation mark
+    default: 'M 24,19 L 24,27 M 24,30 L 24,32'
+};
+
 // ===== Create Hazard Marker =====
 function createHazardMarker(hazard) {
-    const markerColors = {
-        bump: '#ff6b6b',
-        hump: '#ff6b6b',
-        speed_bump: '#ff6b6b',
-        table: '#feca57',
-        raised_crosswalk: '#feca57',
-        cushion: '#ff9f43',
-        rumble_strip: '#a55eea',
-        pothole: '#e74c3c',
-        crossing: '#3498db',
-        turn: '#9b59b6',
-        traffic: '#f39c12',
-        default: '#a55eea'
-    };
-
-    // Use teal/cyan for crowdsourced hazards to make them stand out
-    let color;
+    // Get color scheme for this hazard type
+    let colorScheme;
     if (hazard.source === 'crowdsourced') {
-        color = '#00bcd4'; // Cyan for crowdsourced
+        colorScheme = HAZARD_COLOR_SCHEMES.crowdsourced;
     } else {
-        color = markerColors[hazard.type] || markerColors.default;
+        colorScheme = HAZARD_COLOR_SCHEMES[hazard.type] || HAZARD_COLOR_SCHEMES.default;
     }
 
     const label = getHazardLabel(hazard.type);
 
-    // Make on-route hazards larger, crowdsourced slightly different
-    let scale = hazard.onRoute ? 12 : 8;
+    // Scale based on route proximity and source
+    let baseScale = hazard.onRoute ? 0.9 : 0.7;
     if (hazard.source === 'crowdsourced' && hazard.onRoute) {
-        scale = 14; // Make crowdsourced on-route hazards even more prominent
+        baseScale = 1.0;
     }
 
-    // Different stroke color for crowdsourced
-    const strokeColor = hazard.source === 'crowdsourced' ? '#004d40' : '#ffffff';
+    // Get the appropriate icon path for this hazard type
+    const iconPath = HAZARD_ICONS[hazard.type] || HAZARD_ICONS.default;
 
-    const marker = new google.maps.Marker({
+    // Create composite SVG path: circle background + icon inside
+    // Circle centered at (24,24) with radius 16 for the main marker body
+    const circlePath = 'M 24,4 A 20,20 0 1,1 24,44 A 20,20 0 1,1 24,4 Z';
+    // Pin pointer at bottom
+    const pinPath = 'M 24,44 L 18,44 L 24,52 L 30,44 Z';
+
+    // Create background marker (circle with pin)
+    const backgroundMarker = new google.maps.Marker({
         position: { lat: hazard.lat, lng: hazard.lng },
         map: map,
         icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: scale,
-            fillColor: color,
-            fillOpacity: hazard.onRoute ? 1 : 0.7,
-            strokeColor: strokeColor,
-            strokeWeight: hazard.onRoute ? 3 : 2
+            path: circlePath + ' ' + pinPath,
+            scale: baseScale,
+            fillColor: colorScheme.bg,
+            fillOpacity: hazard.onRoute ? 1 : 0.9,
+            strokeColor: colorScheme.stroke,
+            strokeWeight: hazard.onRoute ? 3 : 2,
+            anchor: new google.maps.Point(24, 52)
         },
         title: label,
-        zIndex: hazard.onRoute ? 100 : 10
+        zIndex: hazard.onRoute ? 99 : 9
+    });
+
+    // Create icon marker (the symbol inside)
+    const iconMarker = new google.maps.Marker({
+        position: { lat: hazard.lat, lng: hazard.lng },
+        map: map,
+        icon: {
+            path: iconPath,
+            scale: baseScale,
+            fillColor: colorScheme.icon,
+            fillOpacity: 1,
+            strokeColor: colorScheme.icon,
+            strokeWeight: hazard.onRoute ? 2.5 : 2,
+            anchor: new google.maps.Point(24, 52)
+        },
+        title: label,
+        zIndex: hazard.onRoute ? 100 : 10,
+        clickable: true
     });
 
     // Build info window content
@@ -869,11 +943,13 @@ function createHazardMarker(hazard) {
         content: infoContent
     });
 
-    marker.addListener('click', () => {
-        infoWindow.open(map, marker);
+    // Add click listener to icon marker (the interactive one)
+    iconMarker.addListener('click', () => {
+        infoWindow.open(map, iconMarker);
     });
 
-    hazardMarkers.push(marker);
+    // Store both markers as an object for proper cleanup
+    hazardMarkers.push({ background: backgroundMarker, icon: iconMarker });
 }
 
 // ===== Get Hazard Label =====
@@ -886,6 +962,10 @@ function getHazardLabel(type) {
         raised_crosswalk: 'Raised Crosswalk',
         cushion: 'Speed Cushion',
         rumble_strip: 'Rumble Strip',
+        pothole: 'Pothole',
+        crossing: 'Pedestrian Crossing',
+        turn: 'Sharp Turn',
+        traffic: 'Traffic Hazard',
         chicane: 'Chicane',
         choker: 'Road Choker',
         island: 'Traffic Island',
